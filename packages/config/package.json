@@ -1,0 +1,13 @@
+{
+  "name": "@tera-sm/config",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    "./tailwind": "./tailwind.config.ts",
+    "./eslint": "./eslint.config.js",
+    "./typescript": "./tsconfig.base.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
