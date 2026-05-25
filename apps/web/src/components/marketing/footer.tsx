@@ -27,7 +27,7 @@ const cols = [
       { label: 'Documentation', href: '/docs' },
       { label: 'API Reference', href: '/docs#api' },
       { label: 'Blog', href: '/blog' },
-      { label: 'Case Studies', href: '/blog#case-studies' },
+      { label: 'Case Studies', href: '/case-studies' },
       { label: 'About', href: '/about' },
       { label: 'Careers', href: '/careers' },
     ],
@@ -39,6 +39,7 @@ const cols = [
       { label: 'Terms of Service', href: '/terms' },
       { label: 'Cookie Policy', href: '/cookies' },
       { label: 'DPA', href: '/dpa' },
+      { label: 'Acceptable Use', href: '/aup' },
     ],
   },
 ]
