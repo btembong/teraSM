@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { sendTeraWelcomeEmail, sendTrialStartEmail } from '@/lib/email'
+import { scheduleDripEmails } from '@/lib/drip'
 
 const Schema = z.object({
   // Admin credentials
@@ -102,6 +104,7 @@ export async function POST(req: Request) {
           phone:      d.phone,
           country:    d.country,
           timezone:   d.timezone ?? 'UTC',
+          currency:   d.currency ?? 'USD',
           logoUrl:    d.logoUrl,
           studentCap: caps.studentCap,
           storageCap: caps.storageCap,
@@ -136,6 +139,39 @@ export async function POST(req: Request) {
 
       return t
     })
+
+    // Schedule drip email sequence (non-blocking, trial plans only)
+    if (trialEndsAt) {
+      scheduleDripEmails({
+        tenantId:   tenant.id,
+        email:      d.email,
+        firstName:  d.firstName,
+        schoolName: d.schoolName,
+      }).catch(err => console.error('[drip schedule]', err))
+    }
+
+    // Send Tera welcome + trial start emails (non-blocking)
+    if (trialEndsAt) {
+      sendTeraWelcomeEmail({
+        to: d.email,
+        firstName: d.firstName,
+        schoolName: d.schoolName,
+      }).catch(err => console.error('[tera welcome email]', err))
+
+      sendTrialStartEmail({
+        to: d.email,
+        firstName: d.firstName,
+        schoolName: d.schoolName,
+        trialEndsAt,
+        plan: d.plan,
+      }).catch(err => console.error('[trial start email]', err))
+    } else {
+      sendTeraWelcomeEmail({
+        to: d.email,
+        firstName: d.firstName,
+        schoolName: d.schoolName,
+      }).catch(err => console.error('[tera welcome email]', err))
+    }
 
     return NextResponse.json({
       success:  true,

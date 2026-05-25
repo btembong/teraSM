@@ -35,8 +35,8 @@ export default async function SuperAdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Platform Overview</h1>
-        <p className="text-gray-400">Tera SM — Super Admin Dashboard</p>
+        <h2 className="text-xl font-bold text-white">Platform Overview</h2>
+        <p className="text-sm text-gray-400 mt-0.5">Tera SM — Super Admin Dashboard</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

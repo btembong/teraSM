@@ -12,6 +12,7 @@ const links = [
   { label: 'Integrations', href: '/integrations' },
   { label: 'Docs', href: '/docs' },
   { label: 'Blog', href: '/blog' },
+  { label: 'Careers', href: '/careers' },
 ]
 
 export function MarketingNav() {

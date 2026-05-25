@@ -1,22 +1,33 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { SidebarNav } from '@/components/ui/sidebar-nav'
+import { prisma } from '@/lib/prisma'
+import { PortalShell } from '@/components/ui/portal-shell'
 import { ForceLight } from '@/components/layout/force-light'
+import { OnboardingVideo } from '@/components/ui/onboarding-video'
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
   if (!session?.user) redirect('/login')
 
+  const tenantId = (session.user as any).tenantId as string | undefined
+  const tenant = tenantId
+    ? await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { staffOnboardingVideoUrl: true },
+      })
+    : null
+
   return (
     <ForceLight>
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col shadow-sm">
-        <SidebarNav portal="staff" accentColor="blue" user={session.user} />
-      </aside>
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-6 py-6 animate-in">{children}</div>
-      </main>
-    </div>
+      <PortalShell portal="staff" accentColor="blue" user={session.user}>
+        {children}
+      </PortalShell>
+      <OnboardingVideo
+        storageKey="tera_onboarding_staff"
+        title="Welcome, Staff"
+        subtitle="Quick guide to your staff portal"
+        videoSrc={(tenant as any)?.staffOnboardingVideoUrl ?? ''}
+      />
     </ForceLight>
   )
 }

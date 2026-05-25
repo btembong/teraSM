@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   const event = await prisma.campusEvent.create({
     data: {
       tenantId,
-      createdById,
+      organizedBy: createdById,
       title,
       description: description || null,
       location: location || null,

@@ -2,16 +2,11 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
-import { ArrowLeft, FileText, ClipboardCheck, MessageSquare, ExternalLink } from 'lucide-react'
+import { ArrowLeft, FileText, ClipboardCheck, MessageSquare, BookOpen } from 'lucide-react'
+import CourseContentList from './_components/CourseContentList'
 
-const contentTypeColor: Record<string, string> = {
-  PDF: 'bg-blue-50 text-blue-600',
-  VIDEO: 'bg-blue-100 text-blue-700',
-  LINK: 'bg-blue-50 text-blue-600',
-  DOCUMENT: 'bg-gray-100 text-gray-600',
-  IMAGE: 'bg-blue-50 text-blue-600',
-  AUDIO: 'bg-gray-100 text-gray-600',
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = prisma as any
 
 export default async function StudentCourseDetailPage({
   params,
@@ -24,7 +19,7 @@ export default async function StudentCourseDetailPage({
   const tenantId = (session.user as any).tenantId
   const userId = (session.user as any).id
 
-  const [offering, contents, assignments, threads] = await Promise.all([
+  const [offering, contents, assignments, threads, quizzes] = await Promise.all([
     prisma.courseOffering.findUnique({
       where: { id: offeringId },
       include: { course: true, semester: { include: { academicYear: true } } },
@@ -43,18 +38,54 @@ export default async function StudentCourseDetailPage({
       orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
       take: 5,
     }),
+    db.quiz.findMany({
+      where: { tenantId, courseOfferingId: offeringId, isPublished: true },
+      include: { _count: { select: { questions: true } } },
+      orderBy: { createdAt: 'desc' },
+    }).catch(() => [] as any[]),
   ])
 
   if (!offering) redirect('/student/courses')
+
+  // Get attempt counts for quizzes
+  const attemptCountMap: Record<string, number> = {}
+  if (quizzes.length > 0) {
+    const attemptCounts: Array<{ quizId: string; _count: { quizId: number } }> = await db.quizAttempt
+      .groupBy({
+        by: ['quizId'],
+        where: { studentId: userId, quizId: { in: quizzes.map((q: any) => q.id) }, submittedAt: { not: null } },
+        _count: { quizId: true },
+      })
+      .catch(() => [])
+    attemptCounts.forEach(a => { attemptCountMap[a.quizId] = a._count.quizId })
+  }
 
   // Get submission statuses for assignments
   const submissionMap: Record<string, string> = {}
   if (assignments.length > 0) {
     const subs = await prisma.submission.findMany({
-      where: { tenantId, studentId: userId, assignmentId: { in: assignments.map((a) => a.id) } },
+      where: { tenantId, studentId: userId, assignmentId: { in: assignments.map(a => a.id) } },
       select: { assignmentId: true, status: true },
     })
-    subs.forEach((s) => { submissionMap[s.assignmentId] = s.status })
+    subs.forEach(s => { submissionMap[s.assignmentId] = s.status })
+  }
+
+  // Get content progress for this student
+  const progressRecords: Array<{ contentId: string; isCompleted: boolean }> = await db.contentProgress
+    .findMany({
+      where: { studentId: userId, courseOfferingId: offeringId },
+      select: { contentId: true, isCompleted: true },
+    })
+    .catch(() => [])
+  const completedIds = new Set<string>(
+    progressRecords.filter(p => p.isCompleted).map(p => p.contentId)
+  )
+
+  const statusBadge: Record<string, string> = {
+    SUBMITTED: 'bg-blue-50 text-blue-700',
+    GRADED: 'bg-blue-100 text-blue-800',
+    LATE: 'bg-blue-50 text-blue-600',
+    DRAFT: 'bg-gray-100 text-gray-600',
   }
 
   return (
@@ -71,38 +102,23 @@ export default async function StudentCourseDetailPage({
         </div>
       </div>
 
-      {/* Course Materials */}
+      {/* Course Materials with progress tracking */}
       <div className="bg-white rounded-2xl border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
           <FileText className="w-5 h-5 text-blue-500" />
           <h2 className="font-semibold text-gray-900">Course Materials</h2>
         </div>
-        {contents.length === 0 ? (
-          <div className="text-center py-8 text-gray-400 text-sm">No materials uploaded yet.</div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {contents.map((c) => (
-              <a
-                key={c.id}
-                href={c.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${contentTypeColor[c.type] ?? 'bg-gray-100 text-gray-600'}`}>
-                    {c.type}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">{c.title}</p>
-                    {c.description && <p className="text-xs text-gray-400">{c.description}</p>}
-                  </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
-              </a>
-            ))}
-          </div>
-        )}
+        <CourseContentList
+          contents={contents.map(c => ({
+            id: c.id,
+            title: c.title,
+            description: c.description,
+            type: c.type,
+            url: c.url,
+          }))}
+          completedIds={completedIds}
+          offeringId={offeringId}
+        />
       </div>
 
       {/* Assignments */}
@@ -115,15 +131,9 @@ export default async function StudentCourseDetailPage({
           <div className="text-center py-8 text-gray-400 text-sm">No assignments yet.</div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {assignments.map((a) => {
+            {assignments.map(a => {
               const subStatus = submissionMap[a.id]
               const isOverdue = new Date(a.dueDate) < new Date()
-              const statusBadge: Record<string, string> = {
-                SUBMITTED: 'bg-blue-50 text-blue-700',
-                GRADED: 'bg-blue-100 text-blue-800',
-                LATE: 'bg-blue-50 text-blue-600',
-                DRAFT: 'bg-gray-100 text-gray-600',
-              }
               return (
                 <Link
                   key={a.id}
@@ -154,6 +164,42 @@ export default async function StudentCourseDetailPage({
         )}
       </div>
 
+      {/* Quizzes */}
+      {quizzes.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-blue-500" />
+            <h2 className="font-semibold text-gray-900">Quizzes</h2>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {quizzes.map((quiz: any) => {
+              const attempts = attemptCountMap[quiz.id] ?? 0
+              const attemptsLeft = quiz.maxAttempts - attempts
+              const done = attemptsLeft === 0
+              return (
+                <Link
+                  key={quiz.id}
+                  href={`/student/quizzes/${quiz.id}`}
+                  className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{quiz.title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {quiz._count.questions} questions
+                      {quiz.durationMins ? ` · ${quiz.durationMins} min` : ' · Untimed'}
+                      {` · Pass: ${quiz.passMark}%`}
+                    </p>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${done ? 'bg-gray-100 text-gray-500' : attempts > 0 ? 'bg-blue-50 text-blue-700' : 'bg-indigo-50 text-indigo-700'}`}>
+                    {done ? 'Completed' : attempts > 0 ? `${attemptsLeft} attempt${attemptsLeft !== 1 ? 's' : ''} left` : 'Take Quiz'}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Discussions */}
       <div className="bg-white rounded-2xl border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
@@ -164,15 +210,16 @@ export default async function StudentCourseDetailPage({
           <div className="text-center py-8 text-gray-400 text-sm">No discussions yet.</div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {threads.map((t) => (
-              <div key={t.id} className="flex items-center justify-between px-6 py-3">
+            {threads.map(t => (
+              <Link key={t.id} href={`/student/discussions/${t.id}`}
+                className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-2">
                   {t.isPinned && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">Pinned</span>}
                   {t.isLocked && <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Locked</span>}
                   <p className="text-sm font-medium text-gray-900">{t.title}</p>
                 </div>
                 <span className="text-sm text-gray-400">{t._count.posts} replies</span>
-              </div>
+              </Link>
             ))}
           </div>
         )}

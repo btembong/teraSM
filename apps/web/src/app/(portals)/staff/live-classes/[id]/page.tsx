@@ -205,7 +205,7 @@ export default function StaffLiveClassRoomPage() {
           <p className="text-gray-600 text-sm">{liveClass.description}</p>
         )}
 
-        <div className="grid grid-cols-3 gap-4 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Clock className="w-4 h-4 text-gray-400" />
             <div>

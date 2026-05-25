@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Megaphone, Pin } from 'lucide-react'
+import { AnnouncementsReadMarker } from '@/components/announcements-read-marker'
 
 const audienceColor: Record<string, string> = {
   ALL: 'bg-blue-600 text-white',
@@ -33,6 +34,7 @@ export default async function StudentAnnouncementsPage() {
 
   return (
     <div className="space-y-6">
+      <AnnouncementsReadMarker ids={announcements.map(a => a.id)} />
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Announcements</h1>
         <p className="text-gray-500">School news and important updates</p>

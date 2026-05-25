@@ -10,8 +10,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: 'jwt' },
   pages: {
-    signIn: '/login',
-    error: '/login',
+    signIn:  '/login',
+    signOut: '/signout',
+    error:   '/login',
   },
   providers: [
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -21,21 +22,54 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         })]
       : []),
     Credentials({
+      credentials: { email: {}, password: {}, otp: {} },
       async authorize(credentials) {
-        const validated = LoginSchema.safeParse(credentials)
-        if (!validated.success) return null
-
-        const { email, password } = validated.data
+        const email = credentials?.email as string | undefined
+        if (!email) return null
 
         const user = await prisma.user.findFirst({
           where: { email },
           include: { tenant: true },
         })
+        if (!user) return null
 
-        if (!user || !user.passwordHash) return null
+        // ── OTP verification path ────────────────────────────────────────────
+        if (credentials?.otp) {
+          if (!user.otpCode || !user.otpExpiry) return null
+          if (new Date() > user.otpExpiry) return null // expired
+          const otpMatch = await bcrypt.compare(credentials.otp as string, user.otpCode)
+          if (!otpMatch) return null
+          // Consume OTP
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { otpCode: null, otpExpiry: null, lastLoginAt: new Date() },
+          })
+          return {
+            id: user.id,
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
+            image: user.avatarUrl,
+            role: user.role,
+            tenantId: user.tenantId,
+            onboardingComplete: user.onboardingComplete,
+          }
+        }
 
-        const passwordMatch = await bcrypt.compare(password, user.passwordHash)
+        // ── Password path ────────────────────────────────────────────────────
+        const validated = LoginSchema.safeParse(credentials)
+        if (!validated.success) return null
+
+        if (!user.passwordHash) return null
+        const passwordMatch = await bcrypt.compare(validated.data.password, user.passwordHash)
         if (!passwordMatch) return null
+
+        // If 2FA is enabled the check-2fa route already sent the OTP — deny here
+        if (user.twoFactorEnabled) return null
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        })
 
         return {
           id: user.id,

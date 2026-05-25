@@ -27,7 +27,6 @@ export default async function AdminStudentLifePage() {
     }),
     prisma.maintenanceRequest.findMany({
       where: { tenantId },
-      include: { reportedBy: { select: { firstName: true, lastName: true } } },
       orderBy: { createdAt: 'desc' },
       take: 30,
     }),

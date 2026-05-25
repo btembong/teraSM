@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import {
   GraduationCap, CreditCard, Video, Users, BarChart2,
@@ -5,6 +6,21 @@ import {
   Brain, Building2, Library, Shield, Globe, Zap,
   ClipboardList, UserCog, Vote, Heart, ArrowRight,
 } from 'lucide-react'
+
+export const metadata: Metadata = {
+  title: 'Features — Tera SM',
+  description: 'Explore all 19 modules: academics, finance, LMS, live classes, HR, AI, analytics, parent portal, student life, and more. One platform for every school need.',
+  keywords: [
+    'school management features', 'LMS features Africa', 'student information system features',
+    'school ERP modules', 'academic management features', 'school finance software features',
+  ],
+  openGraph: {
+    title: 'Features — Tera SM',
+    description: '19 integrated modules covering every aspect of school operations. Built for African institutions.',
+    url: 'https://terasms.com/features',
+  },
+  alternates: { canonical: 'https://terasms.com/features' },
+}
 
 const MODULES = [
   {
@@ -191,15 +207,21 @@ export default function FeaturesPage() {
         <div className="grid md:grid-cols-3 gap-5">
           {MODULES.map(m => {
             const Icon = m.icon
-            return (
-              <div key={m.name} className="group bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-6 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-lg hover:shadow-gray-100 dark:hover:shadow-gray-900 transition-all">
+            const card = (
+              <div key={m.name} className={`group bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-6 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-lg hover:shadow-gray-100 dark:hover:shadow-gray-900 transition-all ${m.href ? 'cursor-pointer' : ''}`}>
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-4 ${m.color}`}>
                   <Icon className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2 text-sm">{m.name}</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2 text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{m.name}</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{m.desc}</p>
+                {m.href && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    Learn more <ArrowRight className="w-3 h-3" />
+                  </p>
+                )}
               </div>
             )
+            return m.href ? <Link key={m.name} href={m.href}>{card}</Link> : card
           })}
         </div>
       </section>

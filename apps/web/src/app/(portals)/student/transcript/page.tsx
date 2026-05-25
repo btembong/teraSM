@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { FileText, Printer } from 'lucide-react'
+import { FileText, Download } from 'lucide-react'
 
 export default async function TranscriptPage() {
   const session = await auth()
@@ -60,10 +60,15 @@ export default async function TranscriptPage() {
           <h1 className="text-2xl font-bold text-gray-900">Academic Transcript</h1>
           <p className="text-gray-500">Official academic record</p>
         </div>
-        <button className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-          <Printer className="w-4 h-4" />
-          Print
-        </button>
+        <a
+          href="/api/student/transcript/pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+        >
+          <Download className="w-4 h-4" />
+          Download PDF
+        </a>
       </div>
 
       {/* Student Info */}

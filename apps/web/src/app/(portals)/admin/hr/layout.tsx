@@ -15,10 +15,10 @@ export default async function HRLayout({ children }: { children: React.ReactNode
   ])
 
   const tabs = [
-    { label: 'Overview',       href: '/admin/hr' },
-    { label: 'Employees',      href: '/admin/hr/employees',  badge: employeeCount },
-    { label: 'Leave Requests', href: '/admin/hr/leave',      badge: pendingLeave },
-    { label: 'Payroll',        href: '/admin/hr/payroll',    badge: payrollCount },
+    { label: 'Overview',       href: '/admin/hr',           icon: 'LayoutDashboard', group: 'overview' },
+    { label: 'Employees',      href: '/admin/hr/employees', icon: 'Users',           badge: employeeCount, group: 'people' },
+    { label: 'Leave Requests', href: '/admin/hr/leave',     icon: 'ClipboardList',   badge: pendingLeave,  group: 'time' },
+    { label: 'Payroll',        href: '/admin/hr/payroll',   icon: 'Briefcase',       badge: payrollCount,  group: 'payroll' },
   ]
 
   return (
@@ -32,8 +32,8 @@ export default async function HRLayout({ children }: { children: React.ReactNode
         </div>
         {/* Module identity */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <UserCog className="w-5 h-5 text-blue-600" />
+          <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <UserCog className="w-5 h-5 text-indigo-600" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900 leading-none">HR Management</h1>

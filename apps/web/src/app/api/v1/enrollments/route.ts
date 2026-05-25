@@ -25,7 +25,7 @@ export async function GET(req: Request) {
 
   const enrollments = await prisma.enrollment.findMany({
     where: { tenantId: auth.tenantId, ...(studentId ? { studentId } : {}) },
-    include: { courseOffering: { include: { course: { select: { name: true, code: true } }, semester: { select: { name: true } } } } },
+    include: { courseOffering: { include: { course: { select: { title: true, code: true } }, semester: { select: { name: true } } } } },
     skip: (page - 1) * limit,
     take: limit,
     orderBy: { enrolledAt: 'desc' },

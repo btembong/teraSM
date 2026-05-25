@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse, NextRequest } from 'next/server'
+import { sendAnnouncementEmail } from '@/lib/email'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -56,5 +57,40 @@ export async function POST(req: Request) {
       expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined,
     },
   })
+
+  // Fan-out email to audience (non-blocking)
+  if (body.isPublished) {
+    const audience: string = body.audience ?? 'ALL'
+    const roleFilter: Record<string, string[]> = {
+      STUDENTS: ['STUDENT'],
+      TEACHERS: ['TEACHER'],
+      PARENTS: ['PARENT'],
+      STAFF: ['STAFF', 'HR_ADMIN', 'FINANCE_ADMIN', 'REGISTRAR', 'TENANT_ADMIN'],
+    }
+    const roles = roleFilter[audience] ?? null
+
+    Promise.all([
+      prisma.user.findMany({
+        where: { tenantId, ...(roles ? { role: { in: roles as any[] } } : {}) },
+        select: { email: true, firstName: true },
+      }),
+      prisma.user.findUnique({ where: { id: authorId }, select: { firstName: true, lastName: true } }),
+      prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }),
+    ]).then(([recipients, author, tenant]) => {
+      const authorName = author ? `${author.firstName} ${author.lastName}` : 'School Admin'
+      const schoolName = tenant?.name ?? 'Your School'
+      for (const recipient of recipients) {
+        sendAnnouncementEmail({
+          to: recipient.email,
+          firstName: recipient.firstName,
+          schoolName,
+          title: body.title,
+          body: body.body,
+          authorName,
+        }).catch(err => console.error('[announcement email]', err))
+      }
+    }).catch(err => console.error('[announcement email fan-out]', err))
+  }
+
   return NextResponse.json(announcement, { status: 201 })
 }

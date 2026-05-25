@@ -37,6 +37,10 @@ export default function LoginPage() {
   const [loggingIn,  setLoggingIn]  = useState(false)
   const [loginError, setLoginError] = useState('')
 
+  // 2FA OTP step
+  const [otpStep,    setOtpStep]    = useState(false)
+  const [otp,        setOtp]        = useState('')
+
   const searchRef   = useRef<HTMLDivElement>(null)
   const inputRef    = useRef<HTMLInputElement>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -98,6 +102,41 @@ export default function LoginPage() {
     e.preventDefault()
     setLoginError('')
     setLoggingIn(true)
+
+    if (otpStep) {
+      // Step 2: verify OTP via NextAuth credentials
+      const res = await signIn('credentials', { email, otp, redirect: false })
+      setLoggingIn(false)
+      if (res?.error) {
+        setLoginError('Invalid or expired code. Please try again.')
+      } else {
+        router.push('/dashboard')
+      }
+      return
+    }
+
+    // Step 1: check password + whether 2FA is needed
+    try {
+      const check = await fetch('/api/auth/check-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await check.json()
+
+      if (data.requires2fa) {
+        setLoggingIn(false)
+        setOtpStep(true)
+        setOtp('')
+        return
+      }
+    } catch {
+      setLoggingIn(false)
+      setLoginError('Something went wrong. Please try again.')
+      return
+    }
+
+    // No 2FA — sign in normally
     const res = await signIn('credentials', { email, password, redirect: false })
     setLoggingIn(false)
     if (res?.error) {
@@ -286,62 +325,100 @@ export default function LoginPage() {
           </div>
 
           {/* Direct login — only shown until subdomain routing is live */}
-          {process.env.NEXT_PUBLIC_SUBDOMAIN_LIVE !== 'true' && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="flex-1 h-px bg-gray-100" />
-              <span className="text-xs text-gray-400 font-medium px-1">Sign in directly</span>
-              <div className="flex-1 h-px bg-gray-100" />
-            </div>
-
-            <form onSubmit={handleDirectLogin} className="space-y-3">
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="email"
-                  placeholder="Email address"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  className="w-full h-12 pl-10 pr-4 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
-                />
+          {process.env.NEXT_PUBLIC_SUBDOMAIN_LIVE !== 'true' && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="flex-1 h-px bg-gray-100" />
+                <span className="text-xs text-gray-400 font-medium px-1">
+                  {otpStep ? 'Two-factor verification' : 'Sign in directly'}
+                </span>
+                <div className="flex-1 h-px bg-gray-100" />
               </div>
 
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type={showPw ? 'text' : 'password'}
-                  placeholder="Password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  className="w-full h-12 pl-10 pr-11 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
-                />
+              <form onSubmit={handleDirectLogin} className="space-y-3">
+                {!otpStep ? (
+                  <>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="email"
+                        placeholder="Email address"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        required
+                        className="w-full h-12 pl-10 pr-4 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                      />
+                    </div>
+
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type={showPw ? 'text' : 'password'}
+                        placeholder="Password"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        required
+                        className="w-full h-12 pl-10 pr-11 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPw(p => !p)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-500 text-center">
+                      A 6-digit code was sent to <strong className="text-gray-900">{email}</strong>.
+                      <br />Enter it below — valid for 10 minutes.
+                    </p>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="000000"
+                      value={otp}
+                      onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      onPaste={e => {
+                        e.preventDefault()
+                        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+                        setOtp(pasted)
+                      }}
+                      required
+                      autoFocus
+                      className="w-full h-14 text-center text-2xl font-mono tracking-[0.4em] border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setOtpStep(false); setOtp(''); setLoginError('') }}
+                      className="text-xs text-gray-400 hover:text-gray-600 w-full text-center"
+                    >
+                      ← Back to sign in
+                    </button>
+                  </div>
+                )}
+
+                {loginError && (
+                  <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                    {loginError}
+                  </p>
+                )}
+
                 <button
-                  type="button"
-                  onClick={() => setShowPw(p => !p)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  type="submit"
+                  disabled={loggingIn || (otpStep && otp.length !== 6)}
+                  className="w-full h-12 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 text-white rounded-xl font-semibold text-sm transition-all"
                 >
-                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {loggingIn
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : otpStep ? 'Verify Code' : 'Sign in'
+                  }
                 </button>
-              </div>
-
-              {loginError && (
-                <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                  {loginError}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={loggingIn}
-                className="w-full h-12 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 text-white rounded-xl font-semibold text-sm transition-all"
-              >
-                {loggingIn ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign in'}
-              </button>
-            </form>
-          </div>
-
-          }
+              </form>
+            </div>
+          )}
 
           <p className="text-center text-sm text-gray-500">
             New school?{' '}

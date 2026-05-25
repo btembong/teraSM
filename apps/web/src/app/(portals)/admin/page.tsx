@@ -3,21 +3,20 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import {
-  Users, GraduationCap, DollarSign, BookOpen, Video, Briefcase,
-  Megaphone, Brain, Vote, Library, Settings, UserPlus,
+  Users, GraduationCap, DollarSign, BookOpen, Video,
+  Megaphone, Brain, Vote, Settings, UserPlus,
   AlertTriangle, ChevronRight, CheckCircle2, XCircle, Clock,
-  TrendingUp, FileText, Activity, Zap, Mail,
-  BarChart3, UserCheck, BadgeCheck, UserCog, Building2,
+  TrendingUp, FileText, Activity, Mail,
+  BarChart3, UserCheck, BadgeCheck, UserCog, CalendarDays, Rocket,
 } from 'lucide-react'
-import { StatCard } from '@/components/ui/stat-card'
-import { SectionCard, SectionRow } from '@/components/ui/section-card'
-import { EmptyState } from '@/components/ui/empty-state'
+import { ModuleGrid } from '@/components/ui/module-grid'
+import { getActiveSemester } from '@/lib/active-semester'
 
 function IntegrationRow({ label, ok }: { label: string; ok: boolean }) {
   return (
     <div className="flex items-center justify-between py-2.5">
-      <span className="text-sm text-gray-600">{label}</span>
-      <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full ${ok ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+      <span className="text-sm text-slate-600">{label}</span>
+      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ${ok ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-400'}`}>
         {ok ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
         {ok ? 'Connected' : 'Not set'}
       </span>
@@ -29,8 +28,12 @@ export default async function AdminDashboard() {
   const session = await auth()
   if (!session?.user) redirect('/login')
   const tenantId = (session.user as any).tenantId as string
+  const adminUser = session.user as any
+  const adminFirstName = adminUser.firstName ?? adminUser.name?.split(' ')[0] ?? 'Admin'
 
   const today = new Date()
+  const hour = today.getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
 
@@ -73,6 +76,11 @@ export default async function AdminDashboard() {
     prisma.department.count({ where: { tenantId } }),
     prisma.course.count({ where: { tenantId } }),
     prisma.employee.count({ where: { tenantId, status: 'ACTIVE' } }),
+  ])
+
+  const [activeSemester, feeStructureCount] = await Promise.all([
+    getActiveSemester(tenantId),
+    prisma.feeStructure.count({ where: { tenantId } }),
   ])
 
   const feesThisMonth = invoiceStats._sum.paidAmount ?? 0
@@ -174,138 +182,276 @@ export default async function AdminDashboard() {
     'leave.rejected': 'Leave rejected',
   } as Record<string, string>)[action] ?? action
 
-  return (
-    <div className="space-y-7 pb-12">
+  const setupSteps = [
+    { label: 'Create an academic year', done: deptCount > 0 || courseCount > 0 || !!activeSemester, href: '/admin/academics/calendar', desc: 'Set up your first academic year and semesters' },
+    { label: 'Launch a semester', done: !!activeSemester, href: '/admin/academics/calendar', desc: 'Make a semester active so the rest of the system works' },
+    { label: 'Add departments & courses', done: deptCount > 0 && courseCount > 0, href: '/admin/academics/departments', desc: 'Create your faculty structure and course catalogue' },
+    { label: 'Set up fee structures', done: feeStructureCount > 0, href: '/admin/finance/fees', desc: 'Define what students are charged each semester' },
+    { label: 'Invite staff & students', done: studentCount > 0 || teacherCount > 0, href: '/admin/invites', desc: 'Bring your first users onto the platform' },
+  ]
+  const setupDone = setupSteps.filter(s => s.done).length
 
-      {/* ── Welcome banner ── */}
-      <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-2xl p-6 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.1),_transparent_60%)]" />
-        <div className="relative flex flex-wrap items-center justify-between gap-4">
+  const statCards = [
+    { label: 'Students', value: studentCount.toLocaleString(), icon: GraduationCap, href: '/admin/students', primary: true },
+    { label: 'Teachers', value: teacherCount.toLocaleString(), icon: UserCheck, href: '/admin/students', primary: true },
+    { label: 'Staff', value: staffCount.toLocaleString(), icon: Users, href: '/admin/students', primary: false },
+    { label: 'Offerings', value: offeringCount.toLocaleString(), icon: BookOpen, href: '/admin/academics', primary: true },
+    { label: 'Fees / Month', value: `$${feesThisMonth.toLocaleString()}`, icon: TrendingUp, href: '/admin/finance', primary: true },
+    { label: 'Classes Today', value: liveClassToday.toLocaleString(), icon: Video, href: '/admin/live-classes', primary: liveNow > 0 },
+  ]
+
+  const pendingTotal = pendingLeave + pendingSubmissions + pendingInvoiceCount
+
+  return (
+    <div className="space-y-6 pb-12">
+
+      {/* ── Command Header ── */}
+      <div className="relative bg-slate-900 rounded-2xl p-7 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(99,102,241,0.18),_transparent_55%)]" />
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-indigo-600/5 rounded-full" />
+        <div className="relative flex flex-wrap items-start justify-between gap-6">
           <div>
-            <p className="text-blue-200 text-sm font-medium">
+            <p className="text-lg font-normal text-slate-300">{greeting}, <span className="text-indigo-400">{adminFirstName}</span></p>
+            <h1 className="text-[30px] font-bold text-white leading-tight mt-0.5">{tenant?.name ?? 'Your School'}</h1>
+            <p className="text-slate-400 text-sm mt-1.5">
               {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              {activeSemester && (
+                <span className="ml-2 text-slate-500">
+                  · {activeSemester.academicYear.name} &nbsp;·&nbsp; {activeSemester.name}
+                </span>
+              )}
             </p>
-            <h1 className="text-2xl font-bold text-white mt-0.5">{tenant?.name ?? 'Your School'}</h1>
-            <div className="flex flex-wrap items-center gap-3 mt-3">
-              {liveNow > 0 && (
-                <Link href="/admin/live-classes" className="inline-flex items-center gap-1.5 bg-blue-500/90 hover:bg-blue-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-                  {liveNow} class{liveNow !== 1 ? 'es' : ''} live now
-                </Link>
-              )}
-              {pendingLeave > 0 && (
-                <Link href="/admin/hr/leave" className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  {pendingLeave} leave request{pendingLeave !== 1 ? 's' : ''}
-                </Link>
-              )}
-              {pendingInvoiceCount > 0 && (
-                <Link href="/admin/finance/invoices" className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  {pendingInvoiceCount} unpaid invoice{pendingInvoiceCount !== 1 ? 's' : ''}
-                </Link>
-              )}
-              {pendingSubmissions > 0 && (
-                <Link href="/admin/lms" className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors">
-                  <Clock className="w-3.5 h-3.5" />
-                  {pendingSubmissions} submission{pendingSubmissions !== 1 ? 's' : ''} to grade
-                </Link>
-              )}
+            <p className="text-slate-600 text-[11px] font-semibold uppercase tracking-widest mt-1">Admin Command Center</p>
+
+            {/* ── Live pulse chips ── */}
+            <div className="flex flex-wrap items-center gap-2 mt-4">
+
+              {/* Chip 1 — Live classes */}
+              <Link href="/admin/live-classes"
+                className="inline-flex items-center gap-2 bg-white/8 hover:bg-white/12 border border-white/10 text-slate-300 text-xs font-medium px-3.5 py-1.5 rounded-full transition-colors">
+                <span className="relative flex h-2 w-2">
+                  <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${liveNow > 0 ? 'animate-ping bg-red-400' : 'bg-indigo-400'}`} />
+                  <span className={`relative inline-flex h-2 w-2 rounded-full ${liveNow > 0 ? 'bg-red-400' : 'bg-indigo-500'}`} />
+                </span>
+                {liveNow > 0
+                  ? <><span className="text-white font-semibold">{liveNow}</span> class{liveNow !== 1 ? 'es' : ''} live now</>
+                  : <><span className="text-white font-semibold">{liveClassToday}</span> class{liveClassToday !== 1 ? 'es' : ''} today</>
+                }
+              </Link>
+
+              {/* Chip 2 — Needs attention */}
+              <Link href="/admin/hr/leave"
+                className="inline-flex items-center gap-2 bg-white/8 hover:bg-white/12 border border-white/10 text-slate-300 text-xs font-medium px-3.5 py-1.5 rounded-full transition-colors">
+                <AlertTriangle className={`w-3 h-3 flex-shrink-0 ${pendingTotal > 0 ? 'text-amber-400' : 'text-slate-500'}`} />
+                {pendingTotal > 0
+                  ? <><span className="text-white font-semibold">{pendingTotal}</span> item{pendingTotal !== 1 ? 's' : ''} need attention</>
+                  : <span className="text-slate-500">Nothing pending</span>
+                }
+              </Link>
+
+              {/* Chip 3 — Fees collected */}
+              <Link href="/admin/finance"
+                className="inline-flex items-center gap-2 bg-white/8 hover:bg-white/12 border border-white/10 text-slate-300 text-xs font-medium px-3.5 py-1.5 rounded-full transition-colors">
+                <TrendingUp className="w-3 h-3 text-indigo-400 flex-shrink-0" />
+                <span className="text-white font-semibold">${feesThisMonth.toLocaleString()}</span> collected this month
+              </Link>
+
             </div>
           </div>
-          <div className="flex items-center gap-2 text-right">
-            <div className="bg-white/10 rounded-xl px-4 py-3 text-white">
-              <p className="text-2xl font-bold">{tenant?.plan ?? 'STARTER'}</p>
-              <p className="text-blue-200 text-xs mt-0.5">Current plan</p>
-            </div>
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400">Current Plan</span>
+            <span className="text-3xl font-bold text-white">{tenant?.plan ?? 'STARTER'}</span>
+            <span className="text-slate-400 text-xs mt-0.5">{studentCount.toLocaleString()} active students</span>
+            <Link href="/admin/settings"
+              className="mt-3 inline-flex items-center gap-1.5 bg-indigo-600/80 hover:bg-indigo-600 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors">
+              Manage plan <ChevronRight className="w-3 h-3" />
+            </Link>
           </div>
         </div>
       </div>
 
+      {/* ── Setup Checklist ── */}
+      {setupDone < setupSteps.length && (
+        <div className="bg-white border border-indigo-100 rounded-2xl overflow-hidden shadow-[0_1px_4px_rgba(99,102,241,0.07)]">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center">
+                <Rocket className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900 text-sm">Getting started</p>
+                <p className="text-xs text-slate-400">{setupDone}/{setupSteps.length} steps complete</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-36 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${(setupDone / setupSteps.length) * 100}%` }} />
+              </div>
+              <span className="text-xs font-bold text-indigo-600 w-8 text-right">{Math.round((setupDone / setupSteps.length) * 100)}%</span>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {setupSteps.map((step, i) => (
+              <Link key={i} href={step.done ? '#' : step.href}
+                className={`flex items-center gap-4 px-5 py-3.5 transition-colors ${step.done ? 'opacity-50 cursor-default' : 'hover:bg-indigo-50/40'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${step.done ? 'bg-indigo-100' : 'bg-slate-100'}`}>
+                  {step.done
+                    ? <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />
+                    : <span className="text-xs font-bold text-slate-400">{i + 1}</span>
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-semibold ${step.done ? 'line-through text-slate-400' : 'text-slate-900'}`}>{step.label}</p>
+                  {!step.done && <p className="text-xs text-slate-400 mt-0.5">{step.desc}</p>}
+                </div>
+                {!step.done && (
+                  <div className="flex items-center gap-1 text-xs text-indigo-600 font-semibold flex-shrink-0">
+                    {i === 1 ? <><CalendarDays className="w-3.5 h-3.5" /> Launch</> : <><ChevronRight className="w-3.5 h-3.5" /> Set up</>}
+                  </div>
+                )}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Key Stats ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <StatCard label="Students" value={studentCount.toLocaleString()} icon={GraduationCap} iconBg="bg-blue-50" iconColor="text-blue-600" href="/admin/students" />
-        <StatCard label="Teachers" value={teacherCount.toLocaleString()} icon={UserCheck} iconBg="bg-blue-50" iconColor="text-blue-600" href="/admin/students" />
-        <StatCard label="Staff" value={staffCount.toLocaleString()} icon={Users} iconBg="bg-gray-100" iconColor="text-gray-500" href="/admin/students" />
-        <StatCard label="Course Offerings" value={offeringCount.toLocaleString()} icon={BookOpen} iconBg="bg-blue-50" iconColor="text-blue-600" href="/admin/academics" />
-        <StatCard label="Fees / Month" value={`$${feesThisMonth.toLocaleString()}`} icon={TrendingUp} iconBg="bg-blue-50" iconColor="text-blue-600" href="/admin/finance" />
-        <StatCard label="Classes Today" value={liveClassToday.toLocaleString()} icon={Video} iconBg="bg-blue-50" iconColor="text-blue-600" href="/admin/live-classes" />
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3 pl-0.5">Overview</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {statCards.map(stat => (
+            <Link key={stat.label} href={stat.href}
+              className="group bg-white border border-gray-100 rounded-2xl p-4 hover:border-indigo-200 hover:shadow-sm transition-all duration-150">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-colors ${
+                stat.primary ? 'bg-indigo-50 group-hover:bg-indigo-100' : 'bg-slate-50 group-hover:bg-slate-100'
+              }`}>
+                <stat.icon className={`w-4 h-4 ${stat.primary ? 'text-indigo-600' : 'text-slate-400'}`} />
+              </div>
+              <p className="text-2xl font-bold text-slate-900 leading-none">{stat.value}</p>
+              <p className="text-xs text-slate-400 mt-1.5 font-medium">{stat.label}</p>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* ── Quick Actions ── */}
       <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Zap className="w-4 h-4 text-blue-500" />
-          <h2 className="font-semibold text-gray-900">Quick Actions</h2>
-          <span className="text-xs text-gray-400 ml-1">— or press <kbd className="inline-flex items-center px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 text-xs font-mono text-gray-500">⌘K</kbd></span>
+        <div className="flex items-center justify-between mb-3 pl-0.5">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Quick Actions</p>
+          <span className="text-xs text-slate-400">press <kbd className="inline-flex items-center px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 text-[11px] font-mono text-slate-500">⌘K</kbd></span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {quickActions.map(action => (
             <Link key={action.label} href={action.href}
-              className="group flex flex-col gap-3 p-4 bg-white border border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-sm transition-all duration-150">
-              <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                <action.icon className="w-4 h-4 text-blue-600" />
+              className="group flex flex-col gap-3 p-4 bg-white border border-gray-100 rounded-2xl hover:border-indigo-200 hover:shadow-sm transition-all duration-150">
+              <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                <action.icon className="w-4 h-4 text-indigo-600" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900 leading-tight">{action.label}</p>
-                <p className="text-xs text-gray-400 mt-0.5 leading-snug">{action.desc}</p>
+                <p className="text-sm font-semibold text-slate-900 leading-tight">{action.label}</p>
+                <p className="text-xs text-slate-400 mt-0.5 leading-snug">{action.desc}</p>
               </div>
             </Link>
           ))}
         </div>
       </div>
 
-      {/* ── Status Board + Health ── */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      {/* ── Needs Attention ── */}
+      {pendingTotal > 0 && (
+        <div>
+          <div className="flex items-center gap-2.5 mb-3 pl-0.5">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Needs Attention</p>
+            <span className="text-[11px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">{pendingTotal}</span>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3">
+            {pendingLeave > 0 && (
+              <Link href="/admin/hr/leave"
+                className="group flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 hover:border-amber-200 hover:bg-amber-50/20 transition-all">
+                <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-5 h-5 text-amber-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-900">{pendingLeave} Leave Request{pendingLeave !== 1 ? 's' : ''}</p>
+                  <p className="text-xs text-slate-400">Awaiting your approval</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-amber-400 transition-colors flex-shrink-0" />
+              </Link>
+            )}
+            {pendingSubmissions > 0 && (
+              <Link href="/admin/lms"
+                className="group flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 hover:border-indigo-200 hover:bg-indigo-50/20 transition-all">
+                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-indigo-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-900">{pendingSubmissions} Submission{pendingSubmissions !== 1 ? 's' : ''} to Grade</p>
+                  <p className="text-xs text-slate-400">Ungraded student work</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-indigo-400 transition-colors flex-shrink-0" />
+              </Link>
+            )}
+            {pendingInvoiceCount > 0 && (
+              <Link href="/admin/finance/invoices"
+                className="group flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 hover:border-red-200 hover:bg-red-50/20 transition-all">
+                <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5 text-red-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-900">{pendingInvoiceCount} Unpaid Invoice{pendingInvoiceCount !== 1 ? 's' : ''}</p>
+                  <p className="text-xs text-slate-400">Outstanding fee payments</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-red-400 transition-colors flex-shrink-0" />
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Platform Status + Integrations ── */}
+      <div className="grid lg:grid-cols-3 gap-5">
 
         {/* Status board */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-gray-400" />
-              <span className="font-semibold text-gray-900 text-sm">Platform Status</span>
-            </div>
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-50">
+            <BarChart3 className="w-4 h-4 text-slate-300" />
+            <span className="font-semibold text-slate-900 text-sm">Platform Overview</span>
           </div>
           <div className="divide-y divide-gray-50">
             {statusGroups.map(group => (
-              <div key={group.label} className="px-5 py-4 hover:bg-gray-50/50 transition-colors group">
+              <div key={group.label} className="px-5 py-4 hover:bg-slate-50/50 transition-colors group">
                 <div className="flex items-start gap-3">
-                  {/* Icon + label */}
-                  <Link href={group.href} className="flex items-center gap-2.5 min-w-[180px] flex-shrink-0">
-                    <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
-                      <group.Icon className="w-4 h-4 text-blue-600" />
+                  <Link href={group.href} className="flex items-center gap-2.5 min-w-[195px] flex-shrink-0">
+                    <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 transition-colors">
+                      <group.Icon className="w-4 h-4 text-indigo-600" />
                     </div>
-                    <span className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{group.label}</span>
+                    <span className="text-sm font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">{group.label}</span>
                   </Link>
-
-                  {/* Metrics + links */}
                   <div className="flex flex-wrap items-center gap-1.5 flex-1">
                     {group.metrics.map(m => (
                       <Link key={m.value} href={m.href}
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                           m.urgent
-                            ? 'bg-gray-900 text-white hover:bg-gray-700'
-                            : 'bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-700'
+                            ? 'bg-slate-900 text-white hover:bg-slate-700'
+                            : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                         }`}>
-                        {m.urgent && m.urgentLabel
-                          ? <><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />{m.urgentLabel}</>
+                        {m.urgent && (m as any).urgentLabel
+                          ? <><span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse inline-block" />{(m as any).urgentLabel}</>
                           : m.urgent
                           ? <><AlertTriangle className="w-3 h-3" />{m.value}</>
                           : m.value
                         }
                       </Link>
                     ))}
-                    <span className="text-gray-200 text-xs select-none">·</span>
+                    <span className="text-slate-200 text-xs select-none">·</span>
                     {group.links.map(l => (
                       <Link key={l.href + l.label} href={l.href}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
                         <l.Icon className="w-3 h-3" />
                         {l.label}
                       </Link>
                     ))}
                   </div>
-
-                  <Link href={group.href} className="flex-shrink-0 ml-1 text-gray-300 hover:text-blue-500 transition-colors">
+                  <Link href={group.href} className="flex-shrink-0 text-slate-200 hover:text-indigo-400 transition-colors">
                     <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -314,108 +460,103 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        {/* Right column */}
-        <div className="flex flex-col gap-6">
-
-          {/* Integration health */}
-          <SectionCard
-            title="Integrations"
-            icon={Activity}
-            action={
-              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${connectedCount === integrations.length ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
-                {connectedCount}/{integrations.length} active
-              </span>
-            }
-            noPadding
-            bodyClassName="px-5 pb-4"
-          >
+        {/* Integrations */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-slate-300" />
+              <span className="font-semibold text-slate-900 text-sm">Integrations</span>
+            </div>
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${connectedCount === integrations.length ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
+              {connectedCount}/{integrations.length}
+            </span>
+          </div>
+          <div className="px-5 pb-5">
             <div className="divide-y divide-gray-50">
               {integrations.map(i => (
                 <IntegrationRow key={i.label} label={i.label} ok={i.ok} />
               ))}
             </div>
             {connectedCount < integrations.length && (
-              <Link href="/admin/settings" className="mt-3 text-xs text-blue-600 hover:underline flex items-center gap-1">
+              <Link href="/admin/settings" className="mt-4 text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1 font-medium">
                 <Settings className="w-3 h-3" /> Configure in Settings
               </Link>
             )}
-          </SectionCard>
-
-          {/* Plan badge */}
-          <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-5 text-white">
-            <div className="flex items-center gap-2 mb-2">
-              <BadgeCheck className="w-5 h-5 text-blue-200" />
-              <span className="text-xs font-semibold uppercase tracking-widest text-blue-200">Current Plan</span>
-            </div>
-            <p className="text-2xl font-bold">{tenant?.plan ?? 'STARTER'}</p>
-            <p className="text-blue-200 text-xs mt-1">{studentCount.toLocaleString()} active students</p>
-            <Link href="/admin/settings" className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-lg">
-              Manage plan <ChevronRight className="w-3 h-3" />
-            </Link>
           </div>
-
         </div>
+
       </div>
 
-      {/* ── Enrollments + Audit Log ── */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      {/* ── Recent Enrollments + Activity ── */}
+      <div className="grid lg:grid-cols-2 gap-5">
 
-        <SectionCard
-          title="Recent Enrollments"
-          icon={UserCheck}
-          iconColor="text-blue-500"
-          action={<Link href="/admin/academics" className="text-xs text-blue-600 hover:underline font-medium">View all</Link>}
-          noPadding
-        >
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+            <div className="flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-indigo-400" />
+              <span className="font-semibold text-slate-900 text-sm">Recent Enrollments</span>
+            </div>
+            <Link href="/admin/academics" className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold">View all</Link>
+          </div>
           {recentEnrollments.length === 0 ? (
-            <EmptyState icon={UserCheck} title="No enrollments yet" iconBg="bg-blue-50" iconColor="text-blue-400" />
+            <div className="p-12 text-center">
+              <UserCheck className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+              <p className="text-sm text-slate-400 font-medium">No enrollments yet</p>
+            </div>
           ) : (
-            <div>
+            <div className="divide-y divide-gray-50">
               {recentEnrollments.map(e => (
-                <SectionRow key={e.id}>
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                      {studentMap[e.studentId]?.firstName?.[0]}{studentMap[e.studentId]?.lastName?.[0]}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{studentMap[e.studentId]?.firstName} {studentMap[e.studentId]?.lastName}</p>
-                      <p className="text-xs text-gray-400 truncate">{e.courseOffering.course.code} — {e.courseOffering.course.title}</p>
-                    </div>
+                <div key={e.id} className="flex items-center gap-3 px-5 py-3">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    {studentMap[e.studentId]?.firstName?.[0]}{studentMap[e.studentId]?.lastName?.[0]}
                   </div>
-                  <span className="text-xs text-gray-400 whitespace-nowrap ml-3">{new Date(e.enrolledAt).toLocaleDateString()}</span>
-                </SectionRow>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 truncate">
+                      {studentMap[e.studentId]?.firstName} {studentMap[e.studentId]?.lastName}
+                    </p>
+                    <p className="text-xs text-slate-400 truncate">{e.courseOffering.course.code} · {e.courseOffering.course.title}</p>
+                  </div>
+                  <span className="text-xs text-slate-400 whitespace-nowrap">{new Date(e.enrolledAt).toLocaleDateString()}</span>
+                </div>
               ))}
             </div>
           )}
-        </SectionCard>
+        </div>
 
-        <SectionCard
-          title="Recent Activity"
-          icon={Activity}
-          iconColor="text-gray-400"
-          noPadding
-        >
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-50">
+            <Activity className="w-4 h-4 text-slate-300" />
+            <span className="font-semibold text-slate-900 text-sm">Recent Activity</span>
+          </div>
           {auditLogs.length === 0 ? (
-            <EmptyState icon={Activity} title="No activity yet" />
+            <div className="p-12 text-center">
+              <Activity className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+              <p className="text-sm text-slate-400 font-medium">No activity yet</p>
+            </div>
           ) : (
-            <div>
+            <div className="divide-y divide-gray-50">
               {auditLogs.map(log => (
-                <SectionRow key={log.id}>
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm text-gray-700">{actionLabel(log.action)}</p>
-                      <p className="text-xs text-gray-400 truncate">{log.resource}{log.resourceId ? ` · ${log.resourceId.slice(0, 8)}` : ''}</p>
-                    </div>
+                <div key={log.id} className="flex items-start gap-3 px-5 py-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-300 mt-2 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-700">{actionLabel(log.action)}</p>
+                    <p className="text-xs text-slate-400 truncate">{log.resource}{log.resourceId ? ` · ${log.resourceId.slice(0, 8)}` : ''}</p>
                   </div>
-                  <span className="text-xs text-gray-400 whitespace-nowrap ml-3">{new Date(log.createdAt).toLocaleDateString()}</span>
-                </SectionRow>
+                  <span className="text-xs text-slate-400 whitespace-nowrap">{new Date(log.createdAt).toLocaleDateString()}</span>
+                </div>
               ))}
             </div>
           )}
-        </SectionCard>
+        </div>
 
       </div>
+
+      {/* ── Module Directory ── */}
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-6 pl-0.5">Module Directory</p>
+        <ModuleGrid />
+      </div>
+
     </div>
   )
 }

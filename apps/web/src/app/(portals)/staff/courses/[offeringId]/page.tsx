@@ -73,18 +73,18 @@ export default async function StaffCourseDetailPage({
           <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-3">
             <FileText className="w-5 h-5 text-blue-500" />
           </div>
-          <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Manage LMS Content</p>
-          <p className="text-sm text-gray-500 mt-0.5">Upload materials and manage assignments</p>
+          <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Course Hub</p>
+          <p className="text-sm text-gray-500 mt-0.5">Materials, assignments, submissions & grades</p>
         </Link>
         <Link
-          href={`/staff/grades/${offeringId}`}
+          href={`/staff/courses/${offeringId}/grade-entry`}
           className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-blue-200 hover:shadow-sm transition-all group"
         >
           <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-3">
             <ClipboardCheck className="w-5 h-5 text-blue-500" />
           </div>
-          <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Enter Grades</p>
-          <p className="text-sm text-gray-500 mt-0.5">Enter and publish student grades</p>
+          <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Grade Entry</p>
+          <p className="text-sm text-gray-500 mt-0.5">Enter CA & exam scores for official grades</p>
         </Link>
       </div>
 

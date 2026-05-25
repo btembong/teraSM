@@ -1,15 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useContext, createContext, useMemo } from 'react'
 import Link from 'next/link'
 import {
   BookOpen, Code2, Webhook, ChevronDown, Copy, Check,
   Terminal, Key, Shield, Zap, AlertCircle, CheckCircle2,
-  Users, GraduationCap, DollarSign, FileText, BarChart2,
-  ExternalLink, Video, Briefcase, MessageSquare, Bell,
-  Brain, Vote, Library, Upload, Settings, Building,
-  CalendarDays, ClipboardCheck, UserPlus, Megaphone,
+  Users, GraduationCap, DollarSign, Search, ArrowUp, Play,
+  ExternalLink, Video, Briefcase, MessageSquare, Bell, X,
+  Brain, Vote, Library, Upload, Settings,
+  CalendarDays, ClipboardCheck, Megaphone,
 } from 'lucide-react'
+
+// ─── filter context ───────────────────────────────────────────────────────────
+
+const DocsFilter = createContext({ search: '', method: 'ALL' })
 
 // ─── primitives ──────────────────────────────────────────────────────────────
 
@@ -24,8 +28,29 @@ function CopyBtn({ text, light = false }: { text: string; light?: boolean }) {
           : 'text-gray-400 hover:text-gray-100 hover:bg-white/10'
       }`}
     >
-      {copied ? <><Check className="w-3 h-3 text-green-400" /><span className={copied && !light ? 'text-green-400' : ''}>Copied</span></> : <><Copy className="w-3 h-3" />Copy</>}
+      {copied
+        ? <><Check className="w-3 h-3 text-blue-400" /><span className={!light ? 'text-blue-400' : ''}>Copied</span></>
+        : <><Copy className="w-3 h-3" />Copy</>}
     </button>
+  )
+}
+
+// ─── JSON syntax highlighter ─────────────────────────────────────────────────
+
+function JsonHighlight({ code }: { code: string }) {
+  const tokens = code.split(/(\"(?:[^\"\\]|\\.)*\"\s*:?|\btrue\b|\bfalse\b|\bnull\b|-?\d+(?:\.\d+)?)/g)
+  return (
+    <>
+      {tokens.map((tok, i) => {
+        if (!tok) return null
+        if (/^"[^"]*"\s*:/.test(tok)) return <span key={i} className="text-blue-400">{tok}</span>
+        if (/^"/.test(tok))           return <span key={i} className="text-emerald-400">{tok}</span>
+        if (tok === 'true' || tok === 'false') return <span key={i} className="text-orange-400">{tok}</span>
+        if (tok === 'null')           return <span key={i} className="text-red-400">{tok}</span>
+        if (/^-?\d/.test(tok))        return <span key={i} className="text-amber-400">{tok}</span>
+        return <span key={i} className="text-gray-500">{tok}</span>
+      })}
+    </>
   )
 }
 
@@ -35,7 +60,6 @@ function Code({ children, lang = 'bash' }: { children: string; lang?: string }) 
   }
   return (
     <div className="rounded-2xl overflow-hidden shadow-xl shadow-black/20 mt-3 border border-white/5">
-      {/* macOS window chrome */}
       <div className="flex items-center justify-between px-4 py-3 bg-[#1c1c1e] border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
@@ -47,13 +71,16 @@ function Code({ children, lang = 'bash' }: { children: string; lang?: string }) 
         </div>
         <CopyBtn text={children} />
       </div>
-      {/* Code body */}
       <div className="bg-[#141416] px-5 py-4 overflow-x-auto">
-        <pre className="text-[13px] font-mono text-gray-300 leading-6 whitespace-pre">{children}</pre>
+        <pre className="text-[13px] font-mono leading-6 whitespace-pre">
+          {lang === 'json' ? <JsonHighlight code={children} /> : <span className="text-gray-300">{children}</span>}
+        </pre>
       </div>
     </div>
   )
 }
+
+// ─── badge ────────────────────────────────────────────────────────────────────
 
 function Badge({ method }: { method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT' }) {
   const c = {
@@ -64,11 +91,13 @@ function Badge({ method }: { method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT'
     DELETE: 'bg-red-50    dark:bg-red-950    text-red-600    dark:text-red-400    border-red-200    dark:border-red-900',
   }
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-mono font-bold border tracking-wider ${c[method]}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-mono font-bold border tracking-wider flex-shrink-0 ${c[method]}`}>
       {method}
     </span>
   )
 }
+
+// ─── endpoint row ─────────────────────────────────────────────────────────────
 
 type Param = { name: string; type: string; required?: boolean; desc: string }
 
@@ -78,18 +107,63 @@ function EP({ method, path, desc, params, body, response, example }: {
   params?: Param[]; body?: Param[]
   response: string; example?: string
 }) {
+  const { search, method: mFilter } = useContext(DocsFilter)
   const [open, setOpen] = useState(false)
+  const [showTry, setShowTry] = useState(false)
+  const [tryVals, setTryVals] = useState<Record<string, string>>({})
+  const [copiedPath, setCopiedPath] = useState(false)
+
+  // Filter
+  if (mFilter !== 'ALL' && method !== mFilter) return null
+  const q = search.toLowerCase()
+  if (q && !path.toLowerCase().includes(q) && !desc.toLowerCase().includes(q)) return null
+
+  // Build curl command from try-it values
+  const curlCmd = useMemo(() => {
+    const base = 'https://your-school.terasms.com'
+    const qs = params?.filter(p => tryVals[p.name]).map(p => `${p.name}=${encodeURIComponent(tryVals[p.name])}`).join('&')
+    const url = `${base}${path.replace('/api', '/api')}${qs ? `?${qs}` : ''}`
+    const bodyObj = body?.reduce<Record<string,string>>((a, p) => { if (tryVals[p.name]) a[p.name] = tryVals[p.name]; return a }, {})
+    const hasBody = bodyObj && Object.keys(bodyObj).length > 0
+    const lines = [
+      `curl${method !== 'GET' ? ` -X ${method}` : ''} "${url}" \\`,
+      `  -H "Authorization: Bearer tsk_live_xxxx"${hasBody ? ' \\' : ''}`,
+      hasBody ? `  -H "Content-Type: application/json" \\` : '',
+      hasBody ? `  -d '${JSON.stringify(bodyObj, null, 2)}'` : '',
+    ].filter(Boolean)
+    return lines.join('\n')
+  }, [method, path, params, body, tryVals])
+
+  const copyPath = () => {
+    navigator.clipboard.writeText(path)
+    setCopiedPath(true)
+    setTimeout(() => setCopiedPath(false), 1500)
+  }
+
+  const hasTryFields = (params?.length ?? 0) + (body?.length ?? 0) > 0
+
   return (
-    <div className={`rounded-2xl overflow-hidden border transition-all duration-200 ${open ? 'border-gray-300 dark:border-gray-700 shadow-md shadow-black/5' : 'border-gray-200 dark:border-gray-800'}`}>
-      <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 bg-white dark:bg-gray-900 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors text-left">
-        <Badge method={method} />
-        <span className="font-mono text-sm text-gray-800 dark:text-gray-200 flex-1 min-w-0 truncate">{path}</span>
-        <span className="text-xs text-gray-400 dark:text-gray-500 hidden md:block shrink-0 max-w-[200px] truncate">{desc}</span>
-        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${open ? 'bg-gray-100 dark:bg-gray-700' : ''}`}>
-          <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-        </div>
-      </button>
+    <div className={`rounded-2xl overflow-hidden border transition-all duration-200 ${open ? 'border-blue-200 dark:border-blue-900 shadow-md shadow-blue-50 dark:shadow-blue-950/30' : 'border-gray-200 dark:border-gray-800'}`}>
+      {/* Header row */}
+      <div className="flex items-center bg-white dark:bg-gray-900">
+        <button onClick={() => setOpen(!open)}
+          className="flex items-center gap-3 px-4 py-3.5 flex-1 min-w-0 hover:bg-gray-50/80 dark:hover:bg-gray-800/80 transition-colors text-left">
+          <Badge method={method} />
+          <span className="font-mono text-sm text-gray-800 dark:text-gray-200 flex-1 min-w-0 truncate">{path}</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500 hidden md:block shrink-0 max-w-[180px] truncate">{desc}</span>
+          <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 flex-shrink-0 ${open ? 'rotate-180' : ''}`} />
+        </button>
+        {/* Copy path button */}
+        <button
+          onClick={copyPath}
+          title="Copy path"
+          className="px-3 py-3.5 border-l border-gray-100 dark:border-gray-800 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
+        >
+          {copiedPath ? <Check className="w-3.5 h-3.5 text-blue-500" /> : <Copy className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+
+      {/* Expanded body */}
       {open && (
         <div className="border-t border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-[#0f0f11] p-5 space-y-5">
           <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{desc}</p>
@@ -101,7 +175,7 @@ function EP({ method, path, desc, params, body, response, example }: {
               </div>
               <div className="divide-y divide-gray-100 dark:divide-gray-800/60">
                 {params.map(p => (
-                  <div key={p.name} className="flex items-start gap-4 px-4 py-2.5 bg-white dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  <div key={p.name} className="flex items-start gap-4 px-4 py-2.5 bg-white dark:bg-gray-900/50">
                     <code className="font-mono text-blue-600 dark:text-blue-400 text-xs min-w-[120px] pt-0.5">{p.name}</code>
                     <code className="text-[11px] text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded font-mono min-w-[70px] text-center self-start">{p.type}</code>
                     {p.required && <span className="text-[10px] font-semibold text-red-500 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 px-1.5 py-0.5 rounded self-start">required</span>}
@@ -119,7 +193,7 @@ function EP({ method, path, desc, params, body, response, example }: {
               </div>
               <div className="divide-y divide-gray-100 dark:divide-gray-800/60">
                 {body.map(p => (
-                  <div key={p.name} className="flex items-start gap-4 px-4 py-2.5 bg-white dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  <div key={p.name} className="flex items-start gap-4 px-4 py-2.5 bg-white dark:bg-gray-900/50">
                     <code className="font-mono text-emerald-600 dark:text-emerald-400 text-xs min-w-[120px] pt-0.5">{p.name}</code>
                     <code className="text-[11px] text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded font-mono min-w-[70px] text-center self-start">{p.type}</code>
                     {p.required && <span className="text-[10px] font-semibold text-red-500 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 px-1.5 py-0.5 rounded self-start">required</span>}
@@ -140,22 +214,52 @@ function EP({ method, path, desc, params, body, response, example }: {
               <Code lang="bash">{example}</Code>
             </div>
           )}
+
+          {/* Try it / curl builder */}
+          {hasTryFields && (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+              <button
+                onClick={() => setShowTry(t => !t)}
+                className="w-full flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <Play className="w-3 h-3 text-blue-500" />
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400 flex-1 text-left">Try It — curl builder</p>
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showTry ? 'rotate-180' : ''}`} />
+              </button>
+              {showTry && (
+                <div className="bg-[#0d0d0f] p-4 space-y-3">
+                  {[...(params ?? []).map(p => ({ ...p, kind: 'query' })), ...(body ?? []).map(p => ({ ...p, kind: 'body' }))].map(p => (
+                    <div key={p.name} className="flex items-center gap-3">
+                      <code className={`text-xs min-w-[130px] ${p.kind === 'query' ? 'text-blue-400' : 'text-emerald-400'}`}>{p.name}</code>
+                      <input
+                        value={tryVals[p.name] ?? ''}
+                        onChange={e => setTryVals(v => ({ ...v, [p.name]: e.target.value }))}
+                        placeholder={`${p.type}${p.required ? ' *' : ''}`}
+                        className="flex-1 bg-gray-800 text-gray-200 text-xs px-3 py-1.5 rounded-lg border border-gray-700 focus:outline-none focus:border-blue-500 placeholder-gray-600"
+                      />
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t border-gray-800">
+                    <Code lang="bash">{curlCmd}</Code>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-2">{children}</p>
-}
+// ─── section wrapper ──────────────────────────────────────────────────────────
 
 function Section({ id, icon: Icon, title, color, children }: {
   id: string; icon: React.ComponentType<{ className?: string }>;
   title: string; color: string; children: React.ReactNode
 }) {
   return (
-    <section id={id} className="scroll-mt-20">
+    <section id={id} className="scroll-mt-24">
       <div className="flex items-center gap-3 mb-5">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${color}`}>
           <Icon className="w-5 h-5 text-white" />
@@ -170,28 +274,34 @@ function Section({ id, icon: Icon, title, color, children }: {
 // ─── sidebar items ────────────────────────────────────────────────────────────
 
 const nav = [
-  { label: 'Overview', href: '#overview', icon: BookOpen },
-  { label: 'Authentication', href: '#auth', icon: Key },
+  { label: 'Overview',        href: '#overview',       icon: BookOpen },
+  { label: 'Authentication',  href: '#auth',           icon: Key },
   { label: 'Auth & Register', href: '#auth-endpoints', icon: Shield },
-  { label: 'Academics', href: '#academics', icon: GraduationCap },
-  { label: 'LMS', href: '#lms', icon: ClipboardCheck },
-  { label: 'Live Classes', href: '#live-classes', icon: Video },
-  { label: 'Finance', href: '#finance', icon: DollarSign },
-  { label: 'HR', href: '#hr', icon: Briefcase },
-  { label: 'Users & Invites', href: '#users', icon: Users },
-  { label: 'Announcements', href: '#announcements', icon: Megaphone },
-  { label: 'Chat', href: '#chat', icon: MessageSquare },
-  { label: 'Notifications', href: '#notifications', icon: Bell },
-  { label: 'Student Life', href: '#student-life', icon: CalendarDays },
-  { label: 'AI Features', href: '#ai', icon: Brain },
-  { label: 'Elections', href: '#elections', icon: Vote },
-  { label: 'Career & Jobs', href: '#career', icon: Briefcase },
-  { label: 'Library', href: '#library', icon: Library },
-  { label: 'Admin Settings', href: '#admin', icon: Settings },
-  { label: 'File Upload', href: '#upload', icon: Upload },
-  { label: 'Public API v1', href: '#v1', icon: Code2 },
-  { label: 'Webhooks', href: '#webhooks', icon: Webhook },
-  { label: 'Rate Limits', href: '#rate-limits', icon: Shield },
+  { label: 'Profile & 2FA',   href: '#profile',        icon: Key },
+  { label: 'Academics',       href: '#academics',      icon: GraduationCap },
+  { label: 'Admissions',      href: '#admissions',     icon: ClipboardCheck },
+  { label: 'LMS',             href: '#lms',            icon: BookOpen },
+  { label: 'Live Classes',    href: '#live-classes',   icon: Video },
+  { label: 'Finance',         href: '#finance',        icon: DollarSign },
+  { label: 'HR',              href: '#hr',             icon: Briefcase },
+  { label: 'Student Portal',  href: '#student-portal', icon: Users },
+  { label: 'Staff Portal',    href: '#staff-portal',   icon: GraduationCap },
+  { label: 'Admin Ops',       href: '#admin-ops',      icon: Settings },
+  { label: 'Users & Invites', href: '#users',          icon: Users },
+  { label: 'Announcements',   href: '#announcements',  icon: Megaphone },
+  { label: 'Chat',            href: '#chat',           icon: MessageSquare },
+  { label: 'Notifications',   href: '#notifications',  icon: Bell },
+  { label: 'Student Life',    href: '#student-life',   icon: CalendarDays },
+  { label: 'AI Features',     href: '#ai',             icon: Brain },
+  { label: 'Elections',       href: '#elections',      icon: Vote },
+  { label: 'Career & Jobs',   href: '#career',         icon: Briefcase },
+  { label: 'Library',         href: '#library',        icon: Library },
+  { label: 'Admin Settings',  href: '#admin',          icon: Settings },
+  { label: 'Billing & GDPR',  href: '#billing',        icon: DollarSign },
+  { label: 'File Upload',     href: '#upload',         icon: Upload },
+  { label: 'Public API v1',   href: '#v1',             icon: Code2 },
+  { label: 'Webhooks',        href: '#webhooks',       icon: Webhook },
+  { label: 'Rate Limits',     href: '#rate-limits',    icon: Shield },
 ]
 
 const BASE = 'https://your-school.terasms.com'
@@ -200,45 +310,189 @@ const AUTH = '-H "Authorization: Bearer tsk_live_xxxx"'
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function DocsPage() {
+  const [activeSection, setActiveSection] = useState('overview')
+  const [search, setSearch] = useState('')
+  const [methodFilter, setMethodFilter] = useState<'ALL' | 'GET' | 'POST' | 'PATCH' | 'DELETE'>('ALL')
+  const [showBackToTop, setShowBackToTop] = useState(false)
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id)
+            break
+          }
+        }
+      },
+      { rootMargin: '-20% 0px -70% 0px' }
+    )
+    const sections = document.querySelectorAll('section[id], div[id]')
+    sections.forEach(s => observerRef.current?.observe(s))
+    return () => observerRef.current?.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 600)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); searchRef.current?.focus() }
+      if (e.key === 'Escape') searchRef.current?.blur()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const navGroups = [
+    { label: 'Core',      items: nav.filter(n => ['#overview','#auth','#auth-endpoints','#profile'].includes(n.href)) },
+    { label: 'Academic',  items: nav.filter(n => ['#academics','#admissions','#lms','#live-classes'].includes(n.href)) },
+    { label: 'Business',  items: nav.filter(n => ['#finance','#hr','#admin-ops','#billing'].includes(n.href)) },
+    { label: 'Portals',   items: nav.filter(n => ['#student-portal','#staff-portal','#users','#admin'].includes(n.href)) },
+    { label: 'Community', items: nav.filter(n => ['#announcements','#chat','#notifications','#student-life'].includes(n.href)) },
+    { label: 'Platform',  items: nav.filter(n => ['#ai','#elections','#career','#library','#upload','#v1','#webhooks','#rate-limits'].includes(n.href)) },
+  ]
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
-      {/* Header */}
-      <div className="mb-12">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold mb-4">
-          <Terminal className="w-3.5 h-3.5" /> REST API — v1
+    <div className="bg-white dark:bg-gray-950">
+    <DocsFilter.Provider value={{ search, method: methodFilter }}>
+
+      {/* Dark hero */}
+      <section className="bg-gray-950 px-6 pt-20 pb-16">
+        <div className="max-w-4xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 border border-blue-600/30 text-blue-400 rounded-full text-xs font-semibold mb-5">
+            <Terminal className="w-3.5 h-3.5" /> REST API — v1
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
+            API Documentation
+          </h1>
+          <p className="text-gray-400 text-lg leading-relaxed max-w-2xl mb-8">
+            Complete reference for all Tera SM API endpoints. Every route, parameter, and response — documented and ready to integrate.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { icon: CheckCircle2, label: 'REST + JSON' },
+              { icon: Shield,       label: 'Bearer token auth' },
+              { icon: Zap,          label: '200+ endpoints' },
+              { icon: Code2,        label: 'Pro plan & above' },
+            ].map(b => (
+              <div key={b.label} className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-full text-xs font-medium">
+                <b.icon className="w-3.5 h-3.5 text-blue-400" /> {b.label}
+              </div>
+            ))}
+          </div>
         </div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">API Documentation</h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl">
-          Complete reference for all Tera SM API endpoints. Every route, parameter, and response — documented and searchable.
-        </p>
-        <div className="flex flex-wrap gap-3 mt-5">
+      </section>
+
+      {/* Quick-start strip */}
+      <div className="bg-gray-900 border-b border-gray-800">
+        <div className="max-w-4xl mx-auto px-6 py-5 grid sm:grid-cols-3 gap-5">
           {[
-            { icon: CheckCircle2, label: 'REST + JSON', color: 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400' },
-            { icon: Shield, label: 'Bearer token auth', color: 'bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-400' },
-            { icon: Zap, label: '75+ endpoints', color: 'bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-400' },
-          ].map(b => (
-            <div key={b.label} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${b.color}`}>
-              <b.icon className="w-3.5 h-3.5" /> {b.label}
+            { step: '1', title: 'Get an API key', desc: 'Admin → Settings → API Keys → Generate new key', icon: Key },
+            { step: '2', title: 'Set the header', desc: 'Authorization: Bearer tsk_live_xxxx', icon: Terminal },
+            { step: '3', title: 'Make a request', desc: 'GET /api/v1/students', icon: Code2 },
+          ].map(s => (
+            <div key={s.step} className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">{s.step}</div>
+              <div>
+                <p className="text-white text-xs font-semibold mb-0.5">{s.title}</p>
+                <p className="text-gray-400 text-xs font-mono">{s.desc}</p>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="flex gap-10">
-        {/* Sidebar */}
-        <aside className="hidden lg:block w-52 flex-shrink-0">
-          <div className="sticky top-24 space-y-0.5 max-h-[calc(100vh-8rem)] overflow-y-auto pr-1">
+      {/* Sticky search + method filter */}
+      <div className="sticky top-0 z-20 border-b border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 py-2.5 flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[180px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            <input
+              ref={searchRef}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search endpoints… (Ctrl+K)"
+              className="w-full pl-8 pr-8 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {(['ALL','GET','POST','PATCH','DELETE'] as const).map(m => (
+              <button
+                key={m}
+                onClick={() => setMethodFilter(m)}
+                className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold transition-all ${
+                  methodFilter === m
+                    ? m === 'ALL'    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                    : m === 'GET'    ? 'bg-blue-600 text-white'
+                    : m === 'POST'   ? 'bg-green-600 text-white'
+                    : m === 'PATCH'  ? 'bg-amber-500 text-white'
+                    : 'bg-red-600 text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >{m}</button>
+            ))}
+          </div>
+        </div>
+        {/* Mobile section quick-jump */}
+        <div className="lg:hidden border-t border-gray-100 dark:border-gray-800 overflow-x-auto">
+          <div className="flex items-center gap-1 px-4 py-2 no-scrollbar">
             {nav.map(n => (
               <a key={n.label} href={n.href}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                <n.icon className="w-3.5 h-3.5 flex-shrink-0" />{n.label}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
+                  activeSection === n.href.slice(1)
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                <n.icon className="w-3 h-3" />{n.label}
               </a>
             ))}
           </div>
-        </aside>
+        </div>
+      </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0 space-y-16">
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="flex gap-10">
+          {/* Grouped sidebar */}
+          <aside className="hidden lg:block w-52 flex-shrink-0">
+            <div className="sticky top-24 space-y-4 max-h-[calc(100vh-8rem)] overflow-y-auto pr-1">
+              {navGroups.map(group => (
+                <div key={group.label}>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-600 px-3 mb-1">{group.label}</p>
+                  <div className="space-y-0.5">
+                    {group.items.map(n => {
+                      const isActive = activeSection === n.href.slice(1)
+                      return (
+                        <a key={n.label} href={n.href}
+                          className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                            isActive
+                              ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-semibold'
+                              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+                          }`}
+                        >
+                          <n.icon className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? 'text-blue-500' : ''}`} />{n.label}
+                        </a>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0 space-y-16">
 
           {/* Overview */}
           <section id="overview" className="scroll-mt-20">
@@ -325,6 +579,38 @@ export default function DocsPage() {
             />
           </Section>
 
+          {/* Profile & 2FA */}
+          <Section id="profile" icon={Key} title="Profile & Two-Factor Auth" color="bg-slate-700">
+            <EP method="GET" path="/api/profile/2fa/status" desc="Check if 2FA is enabled for the current user"
+              response={`{ "enabled": true, "method": "TOTP" }`}
+            />
+            <EP method="POST" path="/api/profile/2fa" desc="Enable 2FA — returns TOTP secret and QR code URI"
+              response={`{ "secret": "BASE32SECRET", "otpAuthUrl": "otpauth://totp/TeraSM:user@school.edu?secret=..." }`}
+            />
+            <EP method="DELETE" path="/api/profile/2fa" desc="Disable 2FA for the current user"
+              body={[{ name: 'code', type: 'string', required: true, desc: 'Current TOTP code to confirm disable' }]}
+              response={`{ "success": true }`}
+            />
+            <EP method="GET" path="/api/auth/check-2fa" desc="Check if the current session requires 2FA verification"
+              response={`{ "requires2fa": true }`}
+            />
+            <EP method="GET" path="/api/user/notification-preferences" desc="Get notification preferences for the current user"
+              response={`{ "email": true, "push": true, "sms": false, "whatsapp": false, "feeReminders": true, "assignmentReminders": true }`}
+            />
+            <EP method="PATCH" path="/api/user/notification-preferences" desc="Update notification preferences"
+              body={[
+                { name: 'email', type: 'boolean', desc: 'Email notifications' },
+                { name: 'push', type: 'boolean', desc: 'Push notifications' },
+                { name: 'sms', type: 'boolean', desc: 'SMS notifications' },
+              ]}
+              response={`{ "success": true }`}
+            />
+            <EP method="POST" path="/api/user/fcm-token" desc="Register a Firebase Cloud Messaging token for push notifications"
+              body={[{ name: 'token', type: 'string', required: true, desc: 'FCM device token' }]}
+              response={`{ "success": true }`}
+            />
+          </Section>
+
           {/* Academics */}
           <Section id="academics" icon={GraduationCap} title="Academics" color="bg-blue-600">
             <EP method="GET" path="/api/academics/departments" desc="List all departments"
@@ -370,9 +656,162 @@ export default function DocsPage() {
               params={[{ name: 'yearId', type: 'string', desc: 'Filter by academic year' }]}
               response={`[{ "id": "sem_abc", "name": "Semester 1", "academicYearId": "yr_abc", "startDate": "...", "endDate": "..." }]`}
             />
+            <EP method="POST" path="/api/academics/years/semesters/:id/launch" desc="Launch a semester — marks it as current and activates all linked offerings"
+              response={`{ "success": true, "semesterId": "sem_abc" }`}
+            />
+            <EP method="GET" path="/api/academics/active-semester" desc="Get the currently active semester and academic year"
+              response={`{ "semester": { "id": "sem_abc", "name": "Semester 1", "startDate": "...", "endDate": "..." }, "academicYear": { "id": "yr_abc", "name": "2025/2026" } }`}
+            />
+            <EP method="GET" path="/api/academics/departments/:id" desc="Get a single department with its courses"
+              response={`{ "id": "dep_abc", "name": "Computer Science", "code": "CS", "courses": [...] }`}
+            />
+            <EP method="PATCH" path="/api/academics/departments/:id" desc="Update a department"
+              body={[
+                { name: 'name', type: 'string', desc: 'Updated name' },
+                { name: 'code', type: 'string', desc: 'Updated code' },
+              ]}
+              response={`{ "id": "dep_abc", "name": "Computer Science", "code": "CS" }`}
+            />
+            <EP method="DELETE" path="/api/academics/departments/:id" desc="Delete a department (must have no active courses)"
+              response={`{ "success": true }`}
+            />
+            <EP method="GET" path="/api/academics/courses/:id" desc="Get a single course with offerings"
+              response={`{ "id": "crs_abc", "code": "CS301", "title": "Data Structures", "offerings": [...] }`}
+            />
+            <EP method="PATCH" path="/api/academics/courses/:id" desc="Update a course"
+              body={[
+                { name: 'title', type: 'string', desc: 'Updated title' },
+                { name: 'creditHours', type: 'number', desc: 'Credit hours' },
+              ]}
+              response={`{ "id": "crs_abc", "title": "Data Structures & Algorithms" }`}
+            />
+            <EP method="DELETE" path="/api/academics/courses/:id" desc="Delete a course"
+              response={`{ "success": true }`}
+            />
+            <EP method="GET" path="/api/academics/offerings" desc="List course offerings (sections) with teacher and room info"
+              params={[
+                { name: 'semesterId', type: 'string', desc: 'Filter by semester' },
+                { name: 'departmentId', type: 'string', desc: 'Filter by department' },
+              ]}
+              response={`[{ "id": "off_abc", "courseId": "crs_abc", "semesterId": "sem_abc", "teacherId": "usr_abc", "roomId": "rm_abc", "capacity": 40, "enrolled": 32, "schedule": [...], "course": { "code": "CS301", "title": "Data Structures" } }]`}
+            />
+            <EP method="POST" path="/api/academics/offerings" desc="Create a course offering (section)"
+              body={[
+                { name: 'courseId', type: 'string', required: true, desc: 'Course ID' },
+                { name: 'semesterId', type: 'string', required: true, desc: 'Semester ID' },
+                { name: 'teacherId', type: 'string', required: true, desc: 'Assigned teacher user ID' },
+                { name: 'roomId', type: 'string', desc: 'Room ID' },
+                { name: 'capacity', type: 'number', desc: 'Max student capacity' },
+                { name: 'schedule', type: 'array', desc: 'Array of { day, startTime, endTime }' },
+              ]}
+              response={`{ "id": "off_new", "courseId": "crs_abc", "semesterId": "sem_abc", "capacity": 40 }`}
+            />
+            <EP method="PATCH" path="/api/academics/offerings/:id" desc="Update a course offering (teacher, room, schedule, capacity)"
+              body={[
+                { name: 'teacherId', type: 'string', desc: 'Reassign teacher' },
+                { name: 'roomId', type: 'string', desc: 'Change room' },
+                { name: 'capacity', type: 'number', desc: 'Update capacity' },
+              ]}
+              response={`{ "id": "off_abc", "capacity": 45 }`}
+            />
+            <EP method="DELETE" path="/api/academics/offerings/:id" desc="Delete a course offering (must have no enrollments)"
+              response={`{ "success": true }`}
+            />
+            <EP method="GET" path="/api/academics/programs" desc="List academic programs"
+              response={`[{ "id": "prog_abc", "name": "BSc Computer Science", "code": "BSC-CS", "durationYears": 4, "departmentId": "dep_abc", "_count": { "courses": 38, "students": 210 } }]`}
+            />
+            <EP method="POST" path="/api/academics/programs" desc="Create an academic program"
+              body={[
+                { name: 'name', type: 'string', required: true, desc: 'Program name' },
+                { name: 'code', type: 'string', required: true, desc: 'Unique code e.g. BSC-CS' },
+                { name: 'departmentId', type: 'string', required: true, desc: 'Home department' },
+                { name: 'durationYears', type: 'number', desc: 'Duration in years (default: 4)' },
+              ]}
+              response={`{ "id": "prog_new", "name": "BSc Computer Science", "code": "BSC-CS" }`}
+            />
+            <EP method="GET" path="/api/academics/programs/:id/courses" desc="List courses assigned to a program"
+              response={`[{ "id": "crs_abc", "code": "CS301", "title": "Data Structures", "level": 300, "isRequired": true }]`}
+            />
+            <EP method="GET" path="/api/academics/rooms" desc="List rooms / venues"
+              response={`[{ "id": "rm_abc", "name": "LH 101", "building": "Main Block", "capacity": 60, "type": "LECTURE_HALL" }]`}
+            />
+            <EP method="POST" path="/api/academics/rooms" desc="Create a room"
+              body={[
+                { name: 'name', type: 'string', required: true, desc: 'Room name / number' },
+                { name: 'building', type: 'string', desc: 'Building name' },
+                { name: 'capacity', type: 'number', desc: 'Seating capacity' },
+                { name: 'type', type: 'string', desc: 'LECTURE_HALL | LAB | SEMINAR | EXAM_HALL' },
+              ]}
+              response={`{ "id": "rm_new", "name": "LH 101", "capacity": 60 }`}
+            />
+            <EP method="GET" path="/api/academics/teachers" desc="List teachers/lecturers with their assigned offerings"
+              response={`[{ "id": "usr_abc", "firstName": "Dr. Kwame", "lastName": "Asante", "email": "...", "offerings": [{ "id": "off_abc", "course": { "code": "CS301" } }] }]`}
+            />
+            <EP method="POST" path="/api/academics/enroll" desc="Manually enroll a student into a course offering (admin)"
+              body={[
+                { name: 'studentId', type: 'string', required: true, desc: 'Student user ID' },
+                { name: 'offeringId', type: 'string', required: true, desc: 'Course offering ID' },
+              ]}
+              response={`{ "id": "enr_new", "studentId": "...", "offeringId": "...", "status": "ENROLLED" }`}
+            />
+            <EP method="GET" path="/api/academics/holidays" desc="List academic calendar holidays and events"
+              response={`[{ "id": "hol_abc", "name": "Independence Day", "date": "2026-03-06", "type": "PUBLIC_HOLIDAY" }]`}
+            />
+            <EP method="POST" path="/api/academics/holidays" desc="Add a holiday or event to the academic calendar"
+              body={[
+                { name: 'name', type: 'string', required: true, desc: 'Holiday/event name' },
+                { name: 'date', type: 'date', required: true, desc: 'ISO 8601 date' },
+                { name: 'type', type: 'string', desc: 'PUBLIC_HOLIDAY | ACADEMIC_HOLIDAY | EVENT' },
+              ]}
+              response={`{ "id": "hol_new", "name": "Independence Day", "date": "2026-03-06" }`}
+            />
           </Section>
 
           {/* LMS */}
+          {/* Admissions */}
+          <Section id="admissions" icon={ClipboardCheck} title="Admissions" color="bg-indigo-600">
+            <EP method="GET" path="/api/admin/admissions" desc="List all applications with status and document info"
+              params={[
+                { name: 'status', type: 'string', desc: 'PENDING | REVIEWING | ACCEPTED | REJECTED' },
+                { name: 'search', type: 'string', desc: 'Search by applicant name or email' },
+              ]}
+              response={`[{ "id": "app_abc", "firstName": "Kwame", "lastName": "Mensah", "email": "...", "program": "BSc CS", "status": "REVIEWING", "submittedAt": "..." }]`}
+            />
+            <EP method="PATCH" path="/api/admin/admissions/:id" desc="Update application status (accept, reject, set to reviewing)"
+              body={[
+                { name: 'status', type: 'string', required: true, desc: 'ACCEPTED | REJECTED | REVIEWING' },
+                { name: 'notes', type: 'string', desc: 'Internal admin notes' },
+              ]}
+              response={`{ "id": "app_abc", "status": "ACCEPTED" }`}
+            />
+            <EP method="POST" path="/api/admin/admissions/:id/convert" desc="Convert an accepted application into a student account"
+              body={[
+                { name: 'programId', type: 'string', required: true, desc: 'Enroll into this program' },
+                { name: 'level', type: 'number', desc: 'Starting level (default: 100)' },
+              ]}
+              response={`{ "userId": "usr_new", "email": "kwame@school.edu", "role": "STUDENT" }`}
+            />
+            <EP method="GET" path="/api/admin/admissions/analytics" desc="Admissions funnel analytics"
+              response={`{ "total": 340, "pending": 45, "reviewing": 28, "accepted": 210, "rejected": 57, "byProgram": [...] }`}
+            />
+            <EP method="GET" path="/api/apply/:slug" desc="Get public application form for a school (no auth required)"
+              response={`{ "schoolName": "Ashesi University", "programs": [...], "deadline": "2026-06-30" }`}
+            />
+            <EP method="POST" path="/api/apply/:slug" desc="Submit a public admissions application"
+              body={[
+                { name: 'firstName', type: 'string', required: true, desc: 'Applicant first name' },
+                { name: 'lastName', type: 'string', required: true, desc: 'Applicant last name' },
+                { name: 'email', type: 'string', required: true, desc: 'Applicant email' },
+                { name: 'programId', type: 'string', required: true, desc: 'Program applied for' },
+                { name: 'documents', type: 'array', desc: 'Array of { type, url } uploaded documents' },
+              ]}
+              response={`{ "applicationId": "app_new", "trackingToken": "tkn_xxxx" }`}
+            />
+            <EP method="GET" path="/api/apply/:slug/track/:token" desc="Track application status publicly (no auth)"
+              response={`{ "status": "REVIEWING", "submittedAt": "...", "lastUpdated": "..." }`}
+            />
+          </Section>
+
           <Section id="lms" icon={ClipboardCheck} title="LMS — Content, Assignments & Submissions" color="bg-violet-600">
             <EP method="GET" path="/api/lms/content" desc="List course materials for an offering"
               params={[{ name: 'courseOfferingId', type: 'string', desc: 'Filter by course offering' }]}
@@ -434,6 +873,80 @@ export default function DocsPage() {
               ]}
               response={`{ "id": "sub_abc", "status": "SUBMITTED", "submittedAt": "2026-02-28T22:10:00Z" }`}
             />
+            <EP method="POST" path="/api/lms/submissions/:id/grade" desc="Grade a submission (teacher)"
+              body={[
+                { name: 'score', type: 'number', required: true, desc: 'Score awarded (0–maxScore)' },
+                { name: 'feedback', type: 'string', desc: 'Written feedback comment' },
+              ]}
+              response={`{ "id": "sub_abc", "score": 84, "feedback": "Good work!", "gradedAt": "..." }`}
+            />
+            <EP method="POST" path="/api/lms/submissions/:id/plagiarism" desc="Run plagiarism check on a submission"
+              response={`{ "similarity": 12.4, "sources": [{ "url": "...", "similarity": 8.1 }], "checkedAt": "..." }`}
+            />
+            <EP method="POST" path="/api/lms/submissions/:id/ai-feedback" desc="Generate AI feedback on a submission before teacher grades it"
+              response={`{ "feedback": "Your argument in paragraph 2 is well-structured...", "suggestedScore": 78 }`}
+            />
+            <EP method="GET" path="/api/lms/progress" desc="Get current user's course progress across all enrolled offerings"
+              response={`[{ "offeringId": "off_abc", "course": { "code": "CS301" }, "completedItems": 8, "totalItems": 14, "progressPct": 57 }]`}
+            />
+            <EP method="POST" path="/api/lms/content/:id/progress" desc="Mark a content item as viewed/completed"
+              body={[{ name: 'completed', type: 'boolean', required: true, desc: 'true = mark complete' }]}
+              response={`{ "success": true, "contentId": "cnt_abc", "completedAt": "..." }`}
+            />
+            <EP method="GET" path="/api/lms/leaderboard" desc="Get LMS gamification leaderboard for the active semester"
+              params={[{ name: 'offeringId', type: 'string', desc: 'Scope to a specific course offering' }]}
+              response={`[{ "rank": 1, "userId": "usr_abc", "firstName": "Ama", "lastName": "Boateng", "xp": 840, "badges": 5 }]`}
+            />
+            <EP method="GET" path="/api/lms/discussions/threads" desc="List discussion threads for a course offering"
+              params={[{ name: 'offeringId', type: 'string', required: true, desc: 'Course offering ID' }]}
+              response={`[{ "id": "th_abc", "title": "Week 3 Q&A", "authorId": "usr_abc", "postCount": 12, "isPinned": false, "createdAt": "..." }]`}
+            />
+            <EP method="POST" path="/api/lms/discussions/threads" desc="Create a discussion thread"
+              body={[
+                { name: 'offeringId', type: 'string', required: true, desc: 'Course offering ID' },
+                { name: 'title', type: 'string', required: true, desc: 'Thread title' },
+                { name: 'body', type: 'string', required: true, desc: 'First post body' },
+              ]}
+              response={`{ "id": "th_new", "title": "Week 3 Q&A", "postCount": 1 }`}
+            />
+            <EP method="GET" path="/api/lms/discussions/:threadId/posts" desc="List posts in a discussion thread"
+              response={`[{ "id": "post_abc", "body": "...", "author": { "firstName": "Kofi" }, "votes": 3, "isBestAnswer": false, "createdAt": "..." }]`}
+            />
+            <EP method="POST" path="/api/lms/discussions/:threadId/posts" desc="Reply to a discussion thread"
+              body={[{ name: 'body', type: 'string', required: true, desc: 'Post body' }]}
+              response={`{ "id": "post_new", "body": "...", "createdAt": "..." }`}
+            />
+            <EP method="POST" path="/api/lms/discussions/posts/:postId/vote" desc="Upvote or downvote a discussion post"
+              body={[{ name: 'direction', type: 'string', required: true, desc: 'up | down | remove' }]}
+              response={`{ "success": true, "votes": 4 }`}
+            />
+            <EP method="POST" path="/api/lms/discussions/posts/:postId/best-answer" desc="Mark a post as the best answer (teacher or thread author)"
+              response={`{ "success": true, "postId": "post_abc" }`}
+            />
+            <EP method="GET" path="/api/lms/quizzes" desc="List quizzes for a course offering"
+              params={[{ name: 'offeringId', type: 'string', desc: 'Filter by offering' }]}
+              response={`[{ "id": "quiz_abc", "title": "Week 2 Quiz", "timeLimit": 20, "maxAttempts": 2, "publishedAt": "...", "myAttempts": 1, "myBestScore": 85 }]`}
+            />
+            <EP method="POST" path="/api/lms/quizzes" desc="Create a quiz (teacher)"
+              body={[
+                { name: 'offeringId', type: 'string', required: true, desc: 'Course offering ID' },
+                { name: 'title', type: 'string', required: true, desc: 'Quiz title' },
+                { name: 'timeLimit', type: 'number', desc: 'Time limit in minutes (null = no limit)' },
+                { name: 'maxAttempts', type: 'number', desc: 'Max attempts per student (default: 1)' },
+                { name: 'shuffleQuestions', type: 'boolean', desc: 'Randomize question order (default: false)' },
+              ]}
+              response={`{ "id": "quiz_new", "title": "Week 2 Quiz", "status": "DRAFT" }`}
+            />
+            <EP method="GET" path="/api/lms/quizzes/:id/questions" desc="List questions for a quiz"
+              response={`[{ "id": "q_abc", "body": "What is Big-O?", "type": "MCQ", "options": ["O(1)","O(n)","O(n²)","O(log n)"], "points": 5 }]`}
+            />
+            <EP method="POST" path="/api/lms/quizzes/:id/attempt" desc="Start or submit a quiz attempt"
+              body={[
+                { name: 'action', type: 'string', required: true, desc: 'start | submit' },
+                { name: 'answers', type: 'array', desc: 'Array of { questionId, answer } — required for submit' },
+              ]}
+              response={`{ "attemptId": "att_abc", "score": 80, "passed": true, "completedAt": "..." }`}
+            />
           </Section>
 
           {/* Live Classes */}
@@ -490,6 +1003,23 @@ export default function DocsPage() {
             />
             <EP method="GET" path="/api/finance/scholarships" desc="List scholarship/bursary schemes"
               response={`[{ "id": "sch_abc", "name": "Merit Award", "amount": 1000, "type": "PARTIAL", "status": "ACTIVE" }]`}
+            />
+            <EP method="GET" path="/api/finance/invoices" desc="List invoices (admin view — all students)"
+              params={[
+                { name: 'studentId', type: 'string', desc: 'Filter by student' },
+                { name: 'status', type: 'string', desc: 'PENDING | PAID | OVERDUE | PARTIAL' },
+                { name: 'semesterId', type: 'string', desc: 'Filter by semester' },
+              ]}
+              response={`[{ "id": "inv_abc", "studentId": "usr_abc", "amount": 3500, "paid": 1000, "balance": 2500, "status": "PARTIAL", "dueDate": "2026-03-01", "student": { "firstName": "Ama", "lastName": "Boateng" } }]`}
+            />
+            <EP method="POST" path="/api/finance/invoices" desc="Create an invoice for a student"
+              body={[
+                { name: 'studentId', type: 'string', required: true, desc: 'Student user ID' },
+                { name: 'feeId', type: 'string', required: true, desc: 'Fee structure ID' },
+                { name: 'amount', type: 'number', desc: 'Override amount (defaults to fee amount)' },
+                { name: 'dueDate', type: 'date', desc: 'Override due date' },
+              ]}
+              response={`{ "id": "inv_new", "amount": 3500, "status": "PENDING", "dueDate": "2026-03-01" }`}
             />
           </Section>
 
@@ -636,6 +1166,17 @@ export default function DocsPage() {
               ]}
               response={`{ "success": true, "tenantSlug": "ashesi", "email": "user@school.edu" }`}
             />
+            <EP method="GET" path="/api/users/search" desc="Quick search users by name or email (typeahead)"
+              params={[
+                { name: 'q', type: 'string', required: true, desc: 'Search query (min 2 chars)' },
+                { name: 'role', type: 'string', desc: 'Filter by role' },
+              ]}
+              response={`[{ "id": "usr_abc", "firstName": "Amara", "lastName": "Diallo", "email": "...", "role": "STUDENT" }]`}
+            />
+            <EP method="POST" path="/api/users/batch" desc="Fetch multiple users by ID in one request"
+              body={[{ name: 'ids', type: 'string[]', required: true, desc: 'Array of user IDs (max 100)' }]}
+              response={`[{ "id": "usr_abc", "firstName": "Amara", "lastName": "Diallo", "role": "STUDENT" }]`}
+            />
           </Section>
 
           {/* Announcements */}
@@ -669,6 +1210,9 @@ export default function DocsPage() {
             <EP method="DELETE" path="/api/announcements/:id" desc="Delete an announcement"
               response={`{ "success": true }`}
             />
+            <EP method="POST" path="/api/announcements/:id/read" desc="Mark an announcement as read for the current user"
+              response={`{ "success": true }`}
+            />
           </Section>
 
           {/* Chat */}
@@ -687,6 +1231,10 @@ export default function DocsPage() {
               body={[{ name: 'userId', type: 'string', required: true, desc: 'User ID to message' }]}
               response={`{ "id": "conv_abc", "isGroup": false, "participants": [...] }`}
             />
+            <EP method="POST" path="/api/chat/upload" desc="Upload a file or image to share in chat (multipart)"
+              body={[{ name: 'file', type: 'File (multipart)', required: true, desc: 'Image or document, max 5 MB' }]}
+              response={`{ "url": "https://pub-xxx.r2.dev/chat/filename.jpg", "type": "image" }`}
+            />
           </Section>
 
           {/* Notifications */}
@@ -697,6 +1245,9 @@ export default function DocsPage() {
             <EP method="POST" path="/api/notifications" desc="Mark notifications as read"
               body={[{ name: 'ids', type: 'string[]', desc: 'Specific notification IDs (omit to mark all read)' }]}
               response={`{ "success": true }`}
+            />
+            <EP method="GET" path="/api/notifications/unread-count" desc="Get count of unread notifications for the current user"
+              response={`{ "count": 7 }`}
             />
           </Section>
 
@@ -859,6 +1410,330 @@ export default function DocsPage() {
             />
           </Section>
 
+          {/* Student Portal */}
+          <Section id="student-portal" icon={Users} title="Student Portal" color="bg-sky-600">
+            <EP method="GET" path="/api/student/profile" desc="Get the current student's profile and onboarding state"
+              response={`{ "firstName": "Ama", "lastName": "Boateng", "studentId": "STU/2026/001", "program": "BSc CS", "level": 300, "cgpa": 3.72, "onboardingCompleted": true }`}
+            />
+            <EP method="PATCH" path="/api/student/profile" desc="Update student profile (bio, phone, avatar)"
+              body={[
+                { name: 'phone', type: 'string', desc: 'Phone number' },
+                { name: 'bio', type: 'string', desc: 'Short bio' },
+                { name: 'avatarUrl', type: 'string', desc: 'Profile photo URL' },
+              ]}
+              response={`{ "success": true }`}
+            />
+            <EP method="GET" path="/api/student/timetable" desc="Get the student's weekly class timetable for the active semester"
+              response={`[{ "offeringId": "off_abc", "course": { "code": "CS301", "title": "Data Structures" }, "day": "MONDAY", "startTime": "08:00", "endTime": "10:00", "room": { "name": "LH 101" }, "teacher": { "firstName": "Dr. Kwame" } }]`}
+            />
+            <EP method="GET" path="/api/student/calendar.ics" desc="Download timetable as iCalendar file (for Google/Apple Calendar import)"
+              response={`iCalendar file (Content-Type: text/calendar; charset=utf-8)`}
+            />
+            <EP method="GET" path="/api/student/registration/catalog" desc="Browse course catalog for registration (with seat availability and prerequisites)"
+              params={[
+                { name: 'departmentId', type: 'string', desc: 'Filter by department' },
+                { name: 'level', type: 'number', desc: 'Filter by course level' },
+                { name: 'search', type: 'string', desc: 'Search by course code or title' },
+              ]}
+              response={`[{ "id": "off_abc", "course": { "code": "CS301", "title": "Data Structures", "creditHours": 3 }, "enrolled": 32, "capacity": 40, "seatsLeft": 8, "canRegister": true, "blockedReason": null }]`}
+            />
+            <EP method="GET" path="/api/student/registration" desc="Get the student's current course registrations for the active semester"
+              response={`[{ "id": "enr_abc", "offeringId": "off_abc", "status": "ENROLLED", "course": { "code": "CS301" }, "enrolledAt": "..." }]`}
+            />
+            <EP method="POST" path="/api/student/registration" desc="Register for a course offering"
+              body={[{ name: 'offeringId', type: 'string', required: true, desc: 'Course offering ID to register for' }]}
+              response={`{ "id": "enr_new", "offeringId": "off_abc", "status": "ENROLLED" }`}
+            />
+            <EP method="DELETE" path="/api/student/registration" desc="Drop a course (within the add/drop window)"
+              body={[{ name: 'offeringId', type: 'string', required: true, desc: 'Course offering ID to drop' }]}
+              response={`{ "success": true }`}
+            />
+            <EP method="GET" path="/api/student/enrolled-courses" desc="Get all courses the student is currently enrolled in"
+              response={`[{ "id": "enr_abc", "course": { "code": "CS301", "title": "Data Structures" }, "teacher": { "firstName": "Dr. Kwame" }, "lmsUrl": "/student/courses/off_abc" }]`}
+            />
+            <EP method="GET" path="/api/student/payments" desc="Get the student's payment history and outstanding balances"
+              response={`{ "outstanding": 2500, "invoices": [{ "id": "inv_abc", "amount": 3500, "paid": 1000, "balance": 2500, "status": "PARTIAL", "dueDate": "..." }], "payments": [...] }`}
+            />
+            <EP method="POST" path="/api/student/payments/initialize" desc="Initialize an online payment via Paystack or Stripe"
+              body={[
+                { name: 'invoiceId', type: 'string', required: true, desc: 'Invoice ID to pay' },
+                { name: 'amount', type: 'number', required: true, desc: 'Amount to pay (partial or full)' },
+                { name: 'gateway', type: 'string', desc: 'paystack | stripe | flutterwave (default: paystack)' },
+              ]}
+              response={`{ "authorizationUrl": "https://checkout.paystack.com/...", "reference": "TSM_REF_xxxx" }`}
+            />
+            <EP method="GET" path="/api/student/payments/verify" desc="Verify payment status after gateway redirect"
+              params={[{ name: 'reference', type: 'string', required: true, desc: 'Payment reference from initialize' }]}
+              response={`{ "success": true, "amount": 2500, "invoiceId": "inv_abc", "receiptUrl": "/student/payments/pay_abc/receipt" }`}
+            />
+            <EP method="GET" path="/api/student/payments/:id/receipt" desc="Download payment receipt as PDF"
+              response={`PDF file (Content-Type: application/pdf)`}
+            />
+            <EP method="GET" path="/api/student/payment-plans" desc="Get the student's active installment payment plans"
+              response={`[{ "id": "plan_abc", "invoiceId": "inv_abc", "installments": [{ "dueDate": "...", "amount": 1000, "status": "PAID" }] }]`}
+            />
+            <EP method="POST" path="/api/student/payment-plans" desc="Enroll in an installment payment plan"
+              body={[
+                { name: 'invoiceId', type: 'string', required: true, desc: 'Invoice to split into installments' },
+                { name: 'installments', type: 'number', required: true, desc: 'Number of installments (2 or 3)' },
+              ]}
+              response={`{ "id": "plan_new", "installments": [{ "dueDate": "...", "amount": 1167 }] }`}
+            />
+            <EP method="GET" path="/api/student/scholarships" desc="Get scholarships and bursaries applied to the student's account"
+              response={`[{ "id": "sch_abc", "name": "Merit Award", "amount": 1000, "status": "APPROVED", "appliedToInvoice": "inv_abc" }]`}
+            />
+            <EP method="POST" path="/api/student/manual-payments" desc="Submit proof of manual bank transfer payment"
+              body={[
+                { name: 'invoiceId', type: 'string', required: true, desc: 'Invoice being paid' },
+                { name: 'amount', type: 'number', required: true, desc: 'Amount transferred' },
+                { name: 'proofUrl', type: 'string', required: true, desc: 'URL of uploaded proof of payment' },
+                { name: 'bankReference', type: 'string', desc: 'Bank transaction reference' },
+              ]}
+              response={`{ "id": "mp_new", "status": "PENDING_REVIEW" }`}
+            />
+            <EP method="GET" path="/api/student/transcript/pdf" desc="Download the student's unofficial transcript as PDF"
+              response={`PDF file (Content-Type: application/pdf)`}
+            />
+            <EP method="GET" path="/api/student/id-card" desc="Get digital student ID card data (QR code, photo, details)"
+              response={`{ "studentId": "STU/2026/001", "name": "Ama Boateng", "program": "BSc CS", "level": 300, "photoUrl": "...", "qrCode": "data:image/png;base64,..." }`}
+            />
+            <EP method="GET" path="/api/student/grade-appeals" desc="List the student's grade appeal submissions"
+              response={`[{ "id": "appeal_abc", "courseCode": "CS301", "reason": "...", "status": "PENDING", "submittedAt": "..." }]`}
+            />
+            <EP method="POST" path="/api/student/grade-appeals" desc="Submit a grade appeal"
+              body={[
+                { name: 'gradeId', type: 'string', required: true, desc: 'Grade record ID to appeal' },
+                { name: 'reason', type: 'string', required: true, desc: 'Grounds for appeal' },
+                { name: 'evidence', type: 'string', desc: 'URL of supporting document' },
+              ]}
+              response={`{ "id": "appeal_new", "status": "PENDING" }`}
+            />
+            <EP method="GET" path="/api/student/counseling" desc="List counseling appointments booked by the student"
+              response={`[{ "id": "appt_abc", "counselorName": "Ms. Adjoa", "scheduledAt": "...", "type": "MENTAL_HEALTH", "isAnonymous": false, "status": "CONFIRMED" }]`}
+            />
+            <EP method="POST" path="/api/student/counseling" desc="Book a counseling appointment"
+              body={[
+                { name: 'type', type: 'string', required: true, desc: 'MENTAL_HEALTH | ACADEMIC | CAREER' },
+                { name: 'preferredDate', type: 'datetime', required: true, desc: 'Preferred appointment time' },
+                { name: 'isAnonymous', type: 'boolean', desc: 'Book anonymously (default: false)' },
+                { name: 'notes', type: 'string', desc: 'Brief notes for the counselor' },
+              ]}
+              response={`{ "id": "appt_new", "scheduledAt": "...", "status": "PENDING" }`}
+            />
+            <EP method="GET" path="/api/student/graduation" desc="Get graduation eligibility status and outstanding requirements"
+              response={`{ "eligible": false, "creditEarned": 102, "creditRequired": 120, "outstandingCourses": ["CS401"], "outstandingFees": 0 }`}
+            />
+          </Section>
+
+          {/* Staff Portal */}
+          <Section id="staff-portal" icon={GraduationCap} title="Staff Portal" color="bg-teal-600">
+            <EP method="GET" path="/api/staff/my-offerings" desc="List course offerings assigned to the current teacher for the active semester"
+              response={`[{ "id": "off_abc", "course": { "code": "CS301", "title": "Data Structures" }, "enrolledCount": 32, "schedule": [...] }]`}
+            />
+            <EP method="GET" path="/api/staff/academic-grades" desc="List students and their grades for a course offering"
+              params={[{ name: 'courseOfferingId', type: 'string', required: true, desc: 'Course offering ID' }]}
+              response={`[{ "studentId": "usr_abc", "firstName": "Ama", "lastName": "Boateng", "grade": { "caScore": 72, "examScore": 80, "totalScore": 78, "letterGrade": "B+", "gradePoint": 3.5, "remark": "PASS" } }]`}
+            />
+            <EP method="POST" path="/api/staff/academic-grades" desc="Enter or update CA and exam scores for a student"
+              body={[
+                { name: 'courseOfferingId', type: 'string', required: true, desc: 'Course offering ID' },
+                { name: 'studentId', type: 'string', required: true, desc: 'Student user ID' },
+                { name: 'caScore', type: 'number', desc: 'Continuous assessment score (0–100)' },
+                { name: 'examScore', type: 'number', desc: 'Exam score (0–100)' },
+              ]}
+              response={`{ "id": "grade_abc", "caScore": 72, "examScore": 80, "letterGrade": "B+", "gradePoint": 3.5 }`}
+            />
+            <EP method="POST" path="/api/staff/academic-grades/publish" desc="Publish all grades for a course offering (makes results visible to students)"
+              body={[{ name: 'courseOfferingId', type: 'string', required: true, desc: 'Course offering ID' }]}
+              response={`{ "published": 32, "studentsNotified": 32 }`}
+            />
+            <EP method="GET" path="/api/staff/attendance" desc="Get attendance records for a course offering"
+              params={[
+                { name: 'courseOfferingId', type: 'string', required: true, desc: 'Course offering ID' },
+                { name: 'date', type: 'string', desc: 'Filter by date (ISO 8601)' },
+              ]}
+              response={`[{ "studentId": "usr_abc", "firstName": "Ama", "date": "2026-03-10", "status": "PRESENT" }]`}
+            />
+            <EP method="POST" path="/api/staff/attendance" desc="Submit attendance for a class session"
+              body={[
+                { name: 'courseOfferingId', type: 'string', required: true, desc: 'Course offering ID' },
+                { name: 'date', type: 'date', required: true, desc: 'Class date' },
+                { name: 'records', type: 'array', required: true, desc: 'Array of { studentId, status: PRESENT|ABSENT|LATE }' },
+              ]}
+              response={`{ "saved": 32 }`}
+            />
+            <EP method="GET" path="/api/staff/payslips" desc="Get the current teacher's payslips list"
+              response={`[{ "id": "ps_abc", "month": 5, "year": 2026, "grossPay": 4200, "netPay": 3780, "status": "PAID" }]`}
+            />
+            <EP method="GET" path="/api/staff/payslip-pdf" desc="Download a payslip as PDF"
+              params={[{ name: 'id', type: 'string', required: true, desc: 'Payslip ID' }]}
+              response={`PDF file (Content-Type: application/pdf)`}
+            />
+            <EP method="GET" path="/api/staff/tax-certificate" desc="Download annual tax certificate as PDF"
+              params={[{ name: 'year', type: 'number', required: true, desc: 'Tax year e.g. 2025' }]}
+              response={`PDF file (Content-Type: application/pdf)`}
+            />
+            <EP method="GET" path="/api/staff/office-hours" desc="List the teacher's office hours slots"
+              response={`[{ "id": "oh_abc", "dayOfWeek": "TUESDAY", "startTime": "14:00", "endTime": "16:00", "location": "Room 204", "bookings": [{ "studentId": "...", "status": "CONFIRMED" }] }]`}
+            />
+            <EP method="POST" path="/api/staff/office-hours" desc="Create an office hours slot"
+              body={[
+                { name: 'dayOfWeek', type: 'string', required: true, desc: 'MONDAY–FRIDAY' },
+                { name: 'startTime', type: 'string', required: true, desc: '24h time e.g. 14:00' },
+                { name: 'endTime', type: 'string', required: true, desc: '24h time e.g. 16:00' },
+                { name: 'location', type: 'string', desc: 'Room or virtual link' },
+                { name: 'maxBookings', type: 'number', desc: 'Max concurrent bookings per slot (default: 1)' },
+              ]}
+              response={`{ "id": "oh_new", "dayOfWeek": "TUESDAY", "startTime": "14:00" }`}
+            />
+            <EP method="GET" path="/api/staff/grades-export" desc="Export grade sheet for a course offering as CSV/Excel"
+              params={[{ name: 'courseOfferingId', type: 'string', required: true, desc: 'Course offering ID' }]}
+              response={`CSV/Excel file download`}
+            />
+            <EP method="POST" path="/api/staff/grades-import" desc="Import grades from CSV/Excel file"
+              body={[
+                { name: 'courseOfferingId', type: 'string', required: true, desc: 'Course offering ID' },
+                { name: 'file', type: 'File (multipart)', required: true, desc: 'CSV or Excel file with grades' },
+              ]}
+              response={`{ "imported": 30, "skipped": 2, "errors": [] }`}
+            />
+            <EP method="GET" path="/api/staff/resit-grades" desc="List students eligible for resit and their resit grade entries"
+              params={[{ name: 'courseOfferingId', type: 'string', required: true, desc: 'Course offering ID' }]}
+              response={`[{ "studentId": "...", "firstName": "Kofi", "originalGrade": "F", "resitScore": null }]`}
+            />
+            <EP method="POST" path="/api/staff/resit-grades/submit" desc="Submit resit scores for eligible students"
+              body={[
+                { name: 'courseOfferingId', type: 'string', required: true, desc: 'Course offering ID' },
+                { name: 'grades', type: 'array', required: true, desc: 'Array of { studentId, resitScore }' },
+              ]}
+              response={`{ "submitted": 5 }`}
+            />
+          </Section>
+
+          {/* Admin Ops */}
+          <Section id="admin-ops" icon={Settings} title="Admin Operations" color="bg-orange-600">
+            <EP method="GET" path="/api/admin/dashboard-stats" desc="Get admin dashboard summary stats (students, revenue, enrollments, staff)"
+              response={`{ "totalStudents": 1240, "activeStaff": 87, "revenueThisMonth": 42500, "pendingApplications": 23, "activeOfferings": 64 }`}
+            />
+            <EP method="GET" path="/api/admin/analytics" desc="Full analytics data — enrollment trends, revenue, attendance, pass rates"
+              params={[{ name: 'from', type: 'date', desc: 'Start date' }, { name: 'to', type: 'date', desc: 'End date' }]}
+              response={`{ "enrollmentTrend": [...], "revenueTrend": [...], "passRate": 78.4, "attendanceRate": 83.2 }`}
+            />
+            <EP method="GET" path="/api/admin/enrollments" desc="List all enrollments across all offerings"
+              params={[
+                { name: 'offeringId', type: 'string', desc: 'Filter by offering' },
+                { name: 'status', type: 'string', desc: 'ENROLLED | DROPPED | COMPLETED' },
+              ]}
+              response={`[{ "id": "enr_abc", "studentId": "...", "offeringId": "...", "status": "ENROLLED", "student": { "firstName": "Ama" }, "offering": { "course": { "code": "CS301" } } }]`}
+            />
+            <EP method="GET" path="/api/admin/enrollments/pending" desc="List students on waitlists (pending enrollment)"
+              response={`[{ "studentId": "...", "offeringId": "...", "waitlistPosition": 2, "joinedAt": "..." }]`}
+            />
+            <EP method="GET" path="/api/admin/exams" desc="List all scheduled exams"
+              params={[{ name: 'semesterId', type: 'string', desc: 'Filter by semester' }]}
+              response={`[{ "id": "exam_abc", "courseOfferingId": "...", "date": "2026-05-12", "startTime": "09:00", "duration": 180, "room": { "name": "EH 1" }, "invigilators": [...] }]`}
+            />
+            <EP method="POST" path="/api/admin/exams" desc="Schedule an exam"
+              body={[
+                { name: 'courseOfferingId', type: 'string', required: true, desc: 'Course offering ID' },
+                { name: 'date', type: 'date', required: true, desc: 'Exam date' },
+                { name: 'startTime', type: 'string', required: true, desc: '24h time e.g. 09:00' },
+                { name: 'duration', type: 'number', required: true, desc: 'Duration in minutes' },
+                { name: 'roomId', type: 'string', required: true, desc: 'Exam room' },
+              ]}
+              response={`{ "id": "exam_new", "date": "2026-05-12", "startTime": "09:00" }`}
+            />
+            <EP method="POST" path="/api/admin/exams/:id/invigilators" desc="Assign invigilators to an exam"
+              body={[{ name: 'staffIds', type: 'string[]', required: true, desc: 'Staff user IDs to assign' }]}
+              response={`{ "assigned": 3 }`}
+            />
+            <EP method="GET" path="/api/admin/campuses" desc="List campuses (multi-campus institutions)"
+              response={`[{ "id": "cam_abc", "name": "Main Campus", "city": "Accra", "country": "Ghana", "_count": { "students": 800 } }]`}
+            />
+            <EP method="POST" path="/api/admin/campuses" desc="Create a campus"
+              body={[
+                { name: 'name', type: 'string', required: true, desc: 'Campus name' },
+                { name: 'city', type: 'string', required: true, desc: 'City' },
+                { name: 'country', type: 'string', required: true, desc: 'Country' },
+              ]}
+              response={`{ "id": "cam_new", "name": "Main Campus" }`}
+            />
+            <EP method="GET" path="/api/admin/faculties" desc="List faculties"
+              response={`[{ "id": "fac_abc", "name": "Faculty of Science", "_count": { "departments": 4 } }]`}
+            />
+            <EP method="POST" path="/api/admin/faculties" desc="Create a faculty"
+              body={[{ name: 'name', type: 'string', required: true, desc: 'Faculty name' }]}
+              response={`{ "id": "fac_new", "name": "Faculty of Science" }`}
+            />
+            <EP method="GET" path="/api/admin/faculties/:id/departments" desc="List departments within a faculty"
+              response={`[{ "id": "dep_abc", "name": "Computer Science", "code": "CS" }]`}
+            />
+            <EP method="GET" path="/api/admin/grade-sheets" desc="List grade sheets (summaries per course per semester)"
+              params={[{ name: 'semesterId', type: 'string', desc: 'Filter by semester' }]}
+              response={`[{ "offeringId": "...", "courseCode": "CS301", "totalStudents": 32, "submitted": 32, "published": true }]`}
+            />
+            <EP method="GET" path="/api/admin/resits" desc="List students eligible for resit exams"
+              params={[{ name: 'semesterId', type: 'string', desc: 'Filter by semester' }]}
+              response={`[{ "studentId": "...", "courseCode": "CS301", "originalScore": 38, "eligible": true }]`}
+            />
+            <EP method="POST" path="/api/admin/resits/publish" desc="Publish resit results (makes resit grades visible to students)"
+              body={[{ name: 'semesterId', type: 'string', required: true, desc: 'Semester to publish resit results for' }]}
+              response={`{ "published": 18 }`}
+            />
+            <EP method="GET" path="/api/admin/graduation" desc="List students who have applied for graduation"
+              response={`[{ "studentId": "...", "name": "Ama Boateng", "program": "BSc CS", "cgpa": 3.71, "creditEarned": 120, "status": "PENDING" }]`}
+            />
+            <EP method="POST" path="/api/admin/students/promote" desc="Bulk-promote eligible students to the next level at end of academic year"
+              body={[
+                { name: 'semesterId', type: 'string', required: true, desc: 'Completed semester ID' },
+                { name: 'studentIds', type: 'string[]', desc: 'Specific student IDs (omit to promote all eligible)' },
+              ]}
+              response={`{ "promoted": 210, "failed": 14, "deferred": 8 }`}
+            />
+            <EP method="GET" path="/api/admin/students/promotion-preview" desc="Preview which students will be promoted before committing"
+              params={[{ name: 'semesterId', type: 'string', required: true, desc: 'Semester to evaluate' }]}
+              response={`{ "eligible": [{ "studentId": "...", "name": "Ama Boateng", "currentLevel": 200, "toLevel": 300 }], "failed": [...] }`}
+            />
+            <EP method="GET" path="/api/admin/manual-payments" desc="List pending manual payment proofs awaiting review"
+              response={`[{ "id": "mp_abc", "studentId": "...", "amount": 2500, "proofUrl": "...", "status": "PENDING_REVIEW", "submittedAt": "..." }]`}
+            />
+            <EP method="PATCH" path="/api/admin/manual-payments/:id" desc="Approve or reject a manual payment proof"
+              body={[
+                { name: 'status', type: 'string', required: true, desc: 'APPROVED | REJECTED' },
+                { name: 'notes', type: 'string', desc: 'Reason for rejection' },
+              ]}
+              response={`{ "id": "mp_abc", "status": "APPROVED" }`}
+            />
+            <EP method="GET" path="/api/admin/roles" desc="List custom roles and their permissions"
+              response={`[{ "id": "role_abc", "name": "Registrar", "permissions": ["students.read","students.write","enrollments.read"] }]`}
+            />
+            <EP method="GET" path="/api/admin/notifications-settings" desc="Get school-wide notification settings"
+              response={`{ "feeReminderDays": [7,3,1], "emailEnabled": true, "smsEnabled": false, "whatsappEnabled": true }`}
+            />
+            <EP method="PATCH" path="/api/admin/notifications-settings" desc="Update notification settings"
+              body={[
+                { name: 'feeReminderDays', type: 'number[]', desc: 'Days before due date to send reminders' },
+                { name: 'smsEnabled', type: 'boolean', desc: 'Enable SMS notifications school-wide' },
+              ]}
+              response={`{ "success": true }`}
+            />
+            <EP method="GET" path="/api/admin/security" desc="Get security settings (IP whitelist, 2FA enforcement)"
+              response={`{ "twoFactorRequired": true, "ipWhitelist": ["192.168.1.0/24"], "sessionTimeout": 480 }`}
+            />
+            <EP method="PATCH" path="/api/admin/security" desc="Update security settings"
+              body={[
+                { name: 'twoFactorRequired', type: 'boolean', desc: 'Require 2FA for all staff/admin' },
+                { name: 'ipWhitelist', type: 'string[]', desc: 'CIDR blocks to whitelist for admin portal' },
+                { name: 'sessionTimeout', type: 'number', desc: 'Session timeout in minutes' },
+              ]}
+              response={`{ "success": true }`}
+            />
+            <EP method="POST" path="/api/admin/finance/reminders" desc="Manually trigger fee reminder emails/SMS for overdue invoices"
+              body={[{ name: 'semesterId', type: 'string', desc: 'Scope to a specific semester (default: active)' }]}
+              response={`{ "sent": 43 }`}
+            />
+          </Section>
+
           {/* Admin Settings */}
           <Section id="admin" icon={Settings} title="Admin Settings & API Keys" color="bg-gray-700">
             <EP method="GET" path="/api/admin/settings" desc="Get current school settings (profile, branding, security)"
@@ -892,6 +1767,42 @@ export default function DocsPage() {
                 { name: 'events', type: 'string[]', required: true, desc: 'Event types to subscribe to' },
               ]}
               response={`{ "id": "wh_new", "url": "...", "secret": "whsec_xxxxxxxx" }`}
+            />
+          </Section>
+
+          {/* Billing & GDPR */}
+          <Section id="billing" icon={DollarSign} title="Billing & GDPR" color="bg-blue-700">
+            <EP method="GET" path="/api/admin/billing" desc="Get current subscription plan, usage stats and billing history"
+              response={`{ "plan": "PRO", "status": "ACTIVE", "currentPeriodEnd": "2026-06-01", "studentCount": 842, "studentCap": 3000, "storageUsedGb": 24.3, "storageCap": 100 }`}
+            />
+            <EP method="POST" path="/api/billing/checkout" desc="Initiate a plan upgrade or new subscription checkout"
+              body={[
+                { name: 'plan', type: 'string', required: true, desc: 'STARTER | PRO | ENTERPRISE | UNIVERSITY' },
+                { name: 'billing', type: 'string', required: true, desc: 'monthly | annual' },
+                { name: 'gateway', type: 'string', desc: 'paystack | stripe (default: stripe)' },
+              ]}
+              response={`{ "checkoutUrl": "https://checkout.stripe.com/..." }`}
+            />
+            <EP method="POST" path="/api/billing/activate" desc="Activate a plan after successful payment (called by webhook internally)"
+              body={[{ name: 'reference', type: 'string', required: true, desc: 'Payment reference from checkout' }]}
+              response={`{ "success": true, "plan": "PRO", "activatedAt": "..." }`}
+            />
+            <EP method="GET" path="/api/admin/gdpr/export" desc="Export all personal data for a specific user (GDPR right of access)"
+              params={[{ name: 'userId', type: 'string', required: true, desc: 'User whose data to export' }]}
+              response={`ZIP file download containing JSON exports of all personal data`}
+            />
+            <EP method="DELETE" path="/api/admin/gdpr/erase" desc="Erase a user's personal data (GDPR right to erasure / right to be forgotten)"
+              body={[
+                { name: 'userId', type: 'string', required: true, desc: 'User to erase' },
+                { name: 'confirm', type: 'boolean', required: true, desc: 'Must be true to confirm irreversible action' },
+              ]}
+              response={`{ "success": true, "erasedAt": "..." }`}
+            />
+            <EP method="POST" path="/api/webhooks/paystack" desc="Paystack payment webhook (verified by X-Paystack-Signature header)"
+              response={`{ "received": true }`}
+            />
+            <EP method="POST" path="/api/webhooks/stripe" desc="Stripe payment webhook (verified by Stripe-Signature header)"
+              response={`{ "received": true }`}
             />
           </Section>
 
@@ -1018,8 +1929,23 @@ if (!verifyWebhook(await request.text(), sig, process.env.WEBHOOK_SECRET!)) {
             </div>
           </div>
 
+          </div>
         </div>
       </div>
+
+    </DocsFilter.Provider>
+
+      {/* Back to top */}
+      {showBackToTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-50 w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-600/30 flex items-center justify-center transition-all"
+          aria-label="Back to top"
+        >
+          <ArrowUp className="w-4 h-4" />
+        </button>
+      )}
+
     </div>
   )
 }

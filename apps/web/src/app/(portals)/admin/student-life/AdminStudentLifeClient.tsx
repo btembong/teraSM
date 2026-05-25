@@ -5,15 +5,15 @@ import { Users, Calendar, Building, Wrench, Plus } from 'lucide-react'
 
 const priorityColor: Record<string, string> = {
   LOW: 'bg-gray-100 text-gray-600',
-  MEDIUM: 'bg-blue-50 text-blue-700',
-  HIGH: 'bg-blue-100 text-blue-800',
+  MEDIUM: 'bg-indigo-50 text-indigo-700',
+  HIGH: 'bg-indigo-100 text-indigo-800',
   URGENT: 'bg-gray-900 text-white',
 }
 
 const statusColor: Record<string, string> = {
-  OPEN: 'bg-blue-50 text-blue-700',
-  IN_PROGRESS: 'bg-blue-100 text-blue-800',
-  RESOLVED: 'bg-blue-600 text-white',
+  OPEN: 'bg-indigo-50 text-indigo-700',
+  IN_PROGRESS: 'bg-indigo-100 text-indigo-800',
+  RESOLVED: 'bg-indigo-600 text-white',
   CLOSED: 'bg-gray-100 text-gray-600',
 }
 
@@ -94,8 +94,8 @@ export default function AdminStudentLifeClient({ clubs, events, hostelRooms, mai
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Student Life</h1>
-        <p className="text-gray-500">Manage clubs, events, hostel, and maintenance</p>
+        <h2 className="text-xl font-bold text-slate-900">Student Life</h2>
+        <p className="text-sm text-slate-400 mt-0.5">Manage clubs, events, hostel, and maintenance</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -113,12 +113,12 @@ export default function AdminStudentLifeClient({ clubs, events, hostelRooms, mai
         ))}
       </div>
 
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+      <div className="flex gap-1 bg-indigo-100/70 rounded-xl p-1">
         {tabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm transition-colors ${tab === key ? 'bg-white text-indigo-700 font-semibold shadow-sm border border-indigo-100' : 'text-slate-500 font-medium hover:text-slate-700 hover:bg-white/50'}`}
           >
             <Icon className="w-4 h-4" />
             {label}
@@ -129,7 +129,7 @@ export default function AdminStudentLifeClient({ clubs, events, hostelRooms, mai
       {tab === 'clubs' && (
         <div className="space-y-4">
           <div className="flex justify-end">
-            <button onClick={() => setShowClubForm(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors">
+            <button onClick={() => setShowClubForm(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">
               <Plus className="w-4 h-4" /> New Club
             </button>
           </div>
@@ -141,25 +141,25 @@ export default function AdminStudentLifeClient({ clubs, events, hostelRooms, mai
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                    <input value={clubForm.name} onChange={(e) => setClubForm((f) => ({ ...f, name: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input value={clubForm.name} onChange={(e) => setClubForm((f) => ({ ...f, name: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <select value={clubForm.category} onChange={(e) => setClubForm((f) => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select value={clubForm.category} onChange={(e) => setClubForm((f) => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                       {['General', 'Sports', 'Arts', 'Academic', 'Technology'].map((c) => <option key={c}>{c}</option>)}
                     </select>
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea value={clubForm.description} onChange={(e) => setClubForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                  <textarea value={clubForm.description} onChange={(e) => setClubForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Max Members (optional)</label>
-                  <input type="number" value={clubForm.maxMembers} onChange={(e) => setClubForm((f) => ({ ...f, maxMembers: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input type="number" value={clubForm.maxMembers} onChange={(e) => setClubForm((f) => ({ ...f, maxMembers: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <div className="flex gap-3">
-                  <button type="submit" disabled={submitting} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium">{submitting ? 'Creating...' : 'Create'}</button>
+                  <button type="submit" disabled={submitting} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium">{submitting ? 'Creating...' : 'Create'}</button>
                   <button type="button" onClick={() => setShowClubForm(false)} className="px-5 py-2 bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 rounded-xl text-sm font-medium">Cancel</button>
                 </div>
               </form>
@@ -189,7 +189,7 @@ export default function AdminStudentLifeClient({ clubs, events, hostelRooms, mai
       {tab === 'events' && (
         <div className="space-y-4">
           <div className="flex justify-end">
-            <button onClick={() => setShowEventForm(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors">
+            <button onClick={() => setShowEventForm(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">
               <Plus className="w-4 h-4" /> New Event
             </button>
           </div>
@@ -200,34 +200,34 @@ export default function AdminStudentLifeClient({ clubs, events, hostelRooms, mai
               <form onSubmit={createEvent} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input value={eventForm.title} onChange={(e) => setEventForm((f) => ({ ...f, title: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input value={eventForm.title} onChange={(e) => setEventForm((f) => ({ ...f, title: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea value={eventForm.description} onChange={(e) => setEventForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                  <textarea value={eventForm.description} onChange={(e) => setEventForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
-                    <input type="datetime-local" value={eventForm.startDate} onChange={(e) => setEventForm((f) => ({ ...f, startDate: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="datetime-local" value={eventForm.startDate} onChange={(e) => setEventForm((f) => ({ ...f, startDate: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
-                    <input type="datetime-local" value={eventForm.endDate} onChange={(e) => setEventForm((f) => ({ ...f, endDate: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="datetime-local" value={eventForm.endDate} onChange={(e) => setEventForm((f) => ({ ...f, endDate: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                    <input value={eventForm.location} onChange={(e) => setEventForm((f) => ({ ...f, location: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input value={eventForm.location} onChange={(e) => setEventForm((f) => ({ ...f, location: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Max RSVPs (optional)</label>
-                    <input type="number" value={eventForm.maxRsvp} onChange={(e) => setEventForm((f) => ({ ...f, maxRsvp: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="number" value={eventForm.maxRsvp} onChange={(e) => setEventForm((f) => ({ ...f, maxRsvp: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <button type="submit" disabled={submitting} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium">{submitting ? 'Creating...' : 'Create'}</button>
+                  <button type="submit" disabled={submitting} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium">{submitting ? 'Creating...' : 'Create'}</button>
                   <button type="button" onClick={() => setShowEventForm(false)} className="px-5 py-2 bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 rounded-xl text-sm font-medium">Cancel</button>
                 </div>
               </form>
@@ -248,7 +248,7 @@ export default function AdminStudentLifeClient({ clubs, events, hostelRooms, mai
                         {event.location ? ` · ${event.location}` : ''}
                       </p>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${new Date(event.endDate) >= new Date() ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${new Date(event.endDate) >= new Date() ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}>
                       {new Date(event.endDate) >= new Date() ? 'Upcoming' : 'Past'}
                     </span>
                   </div>
@@ -277,7 +277,7 @@ export default function AdminStudentLifeClient({ clubs, events, hostelRooms, mai
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-gray-700">{room.occupied}/{room.capacity}</span>
                     <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${room.capacity > 0 ? (room.occupied / room.capacity) * 100 : 0}%` }} />
+                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${room.capacity > 0 ? (room.occupied / room.capacity) * 100 : 0}%` }} />
                     </div>
                   </div>
                 </div>
@@ -310,7 +310,7 @@ export default function AdminStudentLifeClient({ clubs, events, hostelRooms, mai
                     <select
                       value={req.status}
                       onChange={(e) => updateMaintenance(req.id, e.target.value)}
-                      className={`text-xs px-2 py-0.5 rounded font-medium border-0 focus:ring-1 focus:ring-blue-500 cursor-pointer ${statusColor[req.status] ?? ''}`}
+                      className={`text-xs px-2 py-0.5 rounded-lg font-medium border-0 focus:ring-1 focus:ring-indigo-500 cursor-pointer ${statusColor[req.status] ?? ''}`}
                     >
                       {['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
                     </select>

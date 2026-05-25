@@ -11,8 +11,6 @@ const PUBLIC_ROUTES = [
 
 const AUTH_ROUTES = ['/login', '/register']
 
-// Routes that must be on a known subdomain — forward to the right tenant
-const TENANT_ROUTES = ['/admin', '/student', '/staff', '/parent']
 
 export default auth((req: NextRequest & { auth: any }) => {
   const { pathname } = req.nextUrl
@@ -36,7 +34,8 @@ export default auth((req: NextRequest & { auth: any }) => {
   const isLoggedIn = !!req.auth
   const isPublic   = PUBLIC_ROUTES.some(r =>
     pathname === r || pathname.startsWith('/api/auth') || pathname.startsWith('/api/v1/') ||
-    pathname.startsWith('/api/invite/') ||
+    pathname.startsWith('/api/invite/') || pathname.startsWith('/api/cron/') || pathname.startsWith('/api/book-demo') ||
+    pathname.startsWith('/api/student/onboarding') ||
     pathname.startsWith('/_next') || pathname.startsWith('/docs') || pathname.startsWith('/blog') ||
     pathname.startsWith('/invite/'),
   )

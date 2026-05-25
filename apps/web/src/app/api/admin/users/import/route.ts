@@ -27,6 +27,13 @@ export async function POST(req: NextRequest) {
   })
   const schoolName = tenant?.name ?? 'Your School'
 
+  // Pre-load all programmes for this tenant so we can resolve programCode → programId
+  const allPrograms: { id: string; code: string }[] = await (prisma as any).program.findMany({
+    where: { tenantId: session.user.tenantId },
+    select: { id: true, code: true },
+  })
+  const programByCode = new Map(allPrograms.map(p => [p.code.toUpperCase(), p.id]))
+
   const results: { row: number; email: string; status: 'created' | 'skipped'; reason?: string }[] = []
   let created = 0
   let skipped = 0
@@ -35,11 +42,16 @@ export async function POST(req: NextRequest) {
     const row = rows[i]
     const rowNum = i + 2 // +2 because row 1 is header
 
-    const firstName = row.firstName?.trim()
-    const lastName  = row.lastName?.trim()
-    const email     = row.email?.trim().toLowerCase()
-    const role      = (row.role?.trim().toUpperCase()) || 'STUDENT'
-    const password  = row.password?.trim() || 'ChangeMe123!'
+    const firstName      = row.firstName?.trim()
+    const lastName       = row.lastName?.trim()
+    const email          = row.email?.trim().toLowerCase()
+    const role           = (row.role?.trim().toUpperCase()) || 'STUDENT'
+    const password       = row.password?.trim() || 'ChangeMe123!'
+    const level          = row.level          ? Number(row.level)          : 100
+    const admissionYear  = row.admissionYear  ? Number(row.admissionYear)  : new Date().getFullYear()
+    const transferCredits= row.transferCredits? Number(row.transferCredits): 0
+    const programCode    = row.programCode?.trim().toUpperCase() ?? ''
+    const resolvedProgramId = programCode ? (programByCode.get(programCode) ?? null) : null
 
     // Validate
     if (!firstName || !lastName || !email) {
@@ -69,7 +81,7 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
-    await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         tenantId: session.user.tenantId,
         email,
@@ -80,7 +92,27 @@ export async function POST(req: NextRequest) {
         status: 'ACTIVE',
         onboardingComplete: true,
       },
+      select: { id: true },
     })
+
+    // Auto-create StudentProfile for STUDENT rows with placement data
+    if (role === 'STUDENT') {
+      const tenantId = session.user.tenantId
+      const count = await prisma.studentProfile.count({ where: { tenantId } })
+      const seq = String(count + 1).padStart(4, '0')
+      const studentId = `STU/${admissionYear}/${seq}`
+      await (prisma as any).studentProfile.create({
+        data: {
+          tenantId,
+          userId:       newUser.id,
+          studentId,
+          admissionYear,
+          level,
+          totalCredits: transferCredits,
+          ...(resolvedProgramId ? { programId: resolvedProgramId } : {}),
+        },
+      })
+    }
 
     // Send welcome email with the plain-text password (non-blocking)
     sendWelcomeEmail({

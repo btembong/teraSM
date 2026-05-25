@@ -8,11 +8,13 @@ export async function GET(req: NextRequest) {
   if (!session?.user?.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = req.nextUrl
-  const role   = searchParams.get('role')   ?? ''
-  const search = searchParams.get('search') ?? ''
+  const role     = searchParams.get('role')     ?? ''
+  const search   = searchParams.get('search')   ?? ''
+  const standing = searchParams.get('standing') ?? ''
 
   const where: any = { tenantId: session.user.tenantId }
   if (role && role !== 'ALL') where.role = role
+  if (standing && standing !== 'ALL') where.academicStanding = standing
   if (search) {
     where.OR = [
       { firstName: { contains: search, mode: 'insensitive' } },
@@ -26,19 +28,23 @@ export async function GET(req: NextRequest) {
     select: {
       firstName: true, lastName: true, email: true,
       role: true, status: true, createdAt: true, lastLoginAt: true,
+      phone: true, academicStanding: true, standingNote: true,
     },
     orderBy: { createdAt: 'desc' },
     take: 5000,
   })
 
-  const header = 'First Name,Last Name,Email,Role,Status,Joined,Last Login'
+  const header = 'First Name,Last Name,Email,Phone,Role,Status,Academic Standing,Standing Note,Joined,Last Login'
   const rows = users.map(u =>
     [
       u.firstName,
       u.lastName,
       u.email,
+      u.phone ?? '',
       u.role,
       u.status,
+      u.academicStanding ?? '',
+      u.standingNote ?? '',
       u.createdAt.toISOString().split('T')[0],
       u.lastLoginAt ? u.lastLoginAt.toISOString().split('T')[0] : '',
     ]

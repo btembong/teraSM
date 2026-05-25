@@ -1,22 +1,35 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { SidebarNav } from '@/components/ui/sidebar-nav'
+import { prisma } from '@/lib/prisma'
+import { PortalShell } from '@/components/ui/portal-shell'
 import { ForceLight } from '@/components/layout/force-light'
+import { PushNotificationRegister } from '@/components/push-notification-register'
+import { OnboardingVideo } from '@/components/ui/onboarding-video'
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
   if (!session?.user) redirect('/login')
 
+  const tenantId = (session.user as any).tenantId as string | undefined
+  const tenant = tenantId
+    ? await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { studentOnboardingVideoUrl: true },
+      })
+    : null
+
   return (
     <ForceLight>
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col shadow-sm">
-        <SidebarNav portal="student" accentColor="blue" user={session.user} />
-      </aside>
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-6 py-6 animate-in">{children}</div>
-      </main>
-    </div>
+      <PortalShell portal="student" accentColor="blue" user={session.user}>
+        {children}
+      </PortalShell>
+      <PushNotificationRegister />
+      <OnboardingVideo
+        storageKey="tera_onboarding_student"
+        title="Welcome to Tera SM"
+        subtitle="Here's how your student portal works"
+        videoSrc={(tenant as any)?.studentOnboardingVideoUrl ?? ''}
+      />
     </ForceLight>
   )
 }

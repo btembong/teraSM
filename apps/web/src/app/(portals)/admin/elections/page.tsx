@@ -14,10 +14,10 @@ interface Election {
 
 const statusColor: Record<string, string> = {
   DRAFT: 'bg-gray-100 text-gray-500',
-  NOMINATIONS_OPEN: 'bg-blue-50 text-blue-700',
-  VOTING_OPEN: 'bg-blue-600 text-white',
+  NOMINATIONS_OPEN: 'bg-indigo-50 text-indigo-700',
+  VOTING_OPEN: 'bg-indigo-600 text-white',
   CLOSED: 'bg-gray-100 text-gray-500',
-  RESULTS_PUBLISHED: 'bg-blue-100 text-blue-800',
+  RESULTS_PUBLISHED: 'bg-indigo-100 text-indigo-800',
 }
 
 const statusFlow = ['DRAFT', 'NOMINATIONS_OPEN', 'VOTING_OPEN', 'CLOSED', 'RESULTS_PUBLISHED']
@@ -82,10 +82,10 @@ export default function AdminElectionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Elections</h1>
-          <p className="text-gray-500">Manage student government elections</p>
+          <h2 className="text-xl font-bold text-slate-900">Elections</h2>
+          <p className="text-sm text-slate-400 mt-0.5">Manage student government elections</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium">
           <Plus className="w-4 h-4" /> New Election
         </button>
       </div>
@@ -97,33 +97,33 @@ export default function AdminElectionsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. SRC Elections 2025" />
+                <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. SRC Elections 2025" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
-                <input value={form.position} onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. SRC President" />
+                <input value={form.position} onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. SRC President" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nominations Start</label>
-                <input type="datetime-local" value={form.nominationsStart} onChange={(e) => setForm((f) => ({ ...f, nominationsStart: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="datetime-local" value={form.nominationsStart} onChange={(e) => setForm((f) => ({ ...f, nominationsStart: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nominations End</label>
-                <input type="datetime-local" value={form.nominationsEnd} onChange={(e) => setForm((f) => ({ ...f, nominationsEnd: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="datetime-local" value={form.nominationsEnd} onChange={(e) => setForm((f) => ({ ...f, nominationsEnd: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Voting Start</label>
-                <input type="datetime-local" value={form.votingStart} onChange={(e) => setForm((f) => ({ ...f, votingStart: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="datetime-local" value={form.votingStart} onChange={(e) => setForm((f) => ({ ...f, votingStart: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Voting End</label>
-                <input type="datetime-local" value={form.votingEnd} onChange={(e) => setForm((f) => ({ ...f, votingEnd: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="datetime-local" value={form.votingEnd} onChange={(e) => setForm((f) => ({ ...f, votingEnd: e.target.value }))} required className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
             </div>
             <div className="flex gap-3">
-              <button type="submit" disabled={submitting} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium">{submitting ? 'Creating...' : 'Create'}</button>
+              <button type="submit" disabled={submitting} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium">{submitting ? 'Creating...' : 'Create'}</button>
               <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 rounded-xl text-sm font-medium">Cancel</button>
             </div>
           </form>
@@ -163,10 +163,10 @@ export default function AdminElectionsPage() {
                     <div key={c.id} className="flex items-center justify-between px-6 py-3">
                       <span className="text-sm text-gray-700">{c.student.firstName} {c.student.lastName}</span>
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${c.status === 'APPROVED' ? 'bg-blue-100 text-blue-800' : c.status === 'REJECTED' ? 'bg-gray-100 text-gray-500' : 'bg-blue-50 text-blue-700'}`}>{c.status}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.status === 'APPROVED' ? 'bg-indigo-100 text-indigo-800' : c.status === 'REJECTED' ? 'bg-gray-100 text-gray-500' : 'bg-indigo-50 text-indigo-700'}`}>{c.status}</span>
                         {c.status === 'PENDING' && (
                           <>
-                            <button onClick={() => vettCandidate(election.id, c.id, 'APPROVED')} className="text-blue-600 hover:text-blue-800"><CheckCircle className="w-4 h-4" /></button>
+                            <button onClick={() => vettCandidate(election.id, c.id, 'APPROVED')} className="text-indigo-600 hover:text-indigo-800"><CheckCircle className="w-4 h-4" /></button>
                             <button onClick={() => vettCandidate(election.id, c.id, 'REJECTED')} className="text-gray-400 hover:text-gray-600"><XCircle className="w-4 h-4" /></button>
                           </>
                         )}

@@ -15,7 +15,7 @@ interface AtRiskStudent {
 
 const riskColor: Record<string, string> = {
   HIGH: 'bg-gray-900 text-white',
-  MEDIUM: 'bg-blue-50 text-blue-700',
+  MEDIUM: 'bg-indigo-50 text-indigo-700',
   LOW: 'bg-gray-100 text-gray-600',
 }
 
@@ -61,14 +61,14 @@ export default function AdminAIPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">AI & Intelligence</h1>
-        <p className="text-gray-500">Early warning system and AI-powered insights</p>
+        <h2 className="text-xl font-bold text-slate-900">AI & Intelligence</h2>
+        <p className="text-sm text-slate-400 mt-0.5">Early warning system and AI-powered insights</p>
       </div>
 
       {/* Natural Language Search */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Search className="w-5 h-5 text-blue-600" />
+          <Search className="w-5 h-5 text-indigo-600" />
           <h2 className="font-semibold text-gray-900">Natural Language Search</h2>
         </div>
         <div className="flex gap-2">
@@ -77,12 +77,12 @@ export default function AdminAIPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && search()}
             placeholder="Search courses, announcements, content..."
-            className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <button
             onClick={search}
             disabled={searching}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium"
           >
             {searching ? '...' : 'Search'}
           </button>
@@ -95,7 +95,7 @@ export default function AdminAIPage() {
                   <p className="text-sm font-medium text-gray-900">{r.title}</p>
                   <p className="text-xs text-gray-400">{r.subtitle}</p>
                 </div>
-                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium capitalize">{r.type}</span>
+                <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium capitalize">{r.type}</span>
               </div>
             ))}
           </div>
@@ -109,7 +109,7 @@ export default function AdminAIPage() {
       <div className="bg-white rounded-2xl border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-blue-500" />
+            <AlertTriangle className="w-5 h-5 text-indigo-500" />
             <h2 className="font-semibold text-gray-900">Early Warning System</h2>
           </div>
           <button
@@ -132,7 +132,7 @@ export default function AdminAIPage() {
             {students.map((s) => (
               <div key={s.id} className="flex items-center justify-between px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${s.riskLevel === 'HIGH' ? 'bg-gray-900' : 'bg-blue-400'}`} />
+                  <div className={`w-2 h-2 rounded-full ${s.riskLevel === 'HIGH' ? 'bg-gray-900' : 'bg-indigo-400'}`} />
                   <div>
                     <p className="font-medium text-gray-900 text-sm">{s.name}</p>
                     <p className="text-xs text-gray-400">
@@ -146,7 +146,7 @@ export default function AdminAIPage() {
                   <span className={`text-xs px-2 py-0.5 rounded font-medium ${riskColor[s.riskLevel]}`}>{s.riskLevel} RISK</span>
                   <button
                     onClick={() => getIntervention(s)}
-                    className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
                   >
                     AI Intervention
                   </button>
@@ -159,9 +159,9 @@ export default function AdminAIPage() {
 
       {/* Intervention Panel */}
       {selectedStudent && (
-        <div className="bg-white rounded-2xl border border-blue-200 p-6">
+        <div className="bg-white rounded-2xl border border-indigo-200 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Bot className="w-5 h-5 text-blue-600" />
+            <Bot className="w-5 h-5 text-indigo-600" />
             <h3 className="font-semibold text-gray-900">AI Intervention Plan — {selectedStudent.name}</h3>
           </div>
           {loadingIntervention ? (

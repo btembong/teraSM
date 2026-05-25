@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
   const { clubId } = await req.json()
 
-  const existing = await prisma.clubMembership.findFirst({ where: { tenantId, clubId, studentId } })
+  const existing = await prisma.clubMembership.findFirst({ where: { tenantId, clubId, userId: studentId } })
   if (existing) {
     if (existing.status === 'ACTIVE') return NextResponse.json({ error: 'Already a member' }, { status: 409 })
     const updated = await prisma.clubMembership.update({ where: { id: existing.id }, data: { status: 'ACTIVE' } })
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   }
 
   const membership = await prisma.clubMembership.create({
-    data: { tenantId, clubId, studentId, role: 'MEMBER', status: 'ACTIVE' },
+    data: { tenantId, clubId, userId: studentId, role: 'MEMBER', status: 'ACTIVE' },
   })
   return NextResponse.json(membership)
 }

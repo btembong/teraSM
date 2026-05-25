@@ -29,6 +29,7 @@ const cols = [
       { label: 'Blog', href: '/blog' },
       { label: 'Case Studies', href: '/blog#case-studies' },
       { label: 'About', href: '/about' },
+      { label: 'Careers', href: '/careers' },
     ],
   },
   {

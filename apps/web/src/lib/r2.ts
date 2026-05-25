@@ -1,4 +1,4 @@
-import { S3Client } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 export const r2Configured =
   !!process.env.R2_ACCOUNT_ID &&
@@ -25,3 +25,24 @@ export const R2_BUCKET = process.env.R2_BUCKET_NAME ?? ''
  * or use the R2 dev URL (https://pub-xxx.r2.dev).
  */
 export const R2_PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL ?? ''
+
+/**
+ * Upload a file buffer to R2 and return its public URL.
+ * Returns null if R2 is not configured.
+ */
+export async function uploadFile(opts: {
+  key: string
+  body: Buffer | Uint8Array
+  contentType: string
+}): Promise<string | null> {
+  if (!r2Configured || !r2) return null
+  await r2.send(
+    new PutObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: opts.key,
+      Body: opts.body,
+      ContentType: opts.contentType,
+    }),
+  )
+  return `${R2_PUBLIC_URL}/${opts.key}`
+}

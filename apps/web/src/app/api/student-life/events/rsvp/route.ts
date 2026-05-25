@@ -6,16 +6,15 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const studentId = (session.user as any).id
-  const tenantId = (session.user as any).tenantId
 
   const { eventId, status } = await req.json()
 
-  const existing = await prisma.eventRsvp.findFirst({ where: { tenantId, eventId, studentId } })
+  const existing = await prisma.eventRsvp.findFirst({ where: { eventId, userId: studentId } })
   if (existing) {
     const updated = await prisma.eventRsvp.update({ where: { id: existing.id }, data: { status } })
     return NextResponse.json(updated)
   }
 
-  const rsvp = await prisma.eventRsvp.create({ data: { tenantId, eventId, studentId, status } })
+  const rsvp = await prisma.eventRsvp.create({ data: { eventId, userId: studentId, status } })
   return NextResponse.json(rsvp)
 }

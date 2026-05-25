@@ -15,10 +15,10 @@ export default async function FinanceLayout({ children }: { children: React.Reac
   ])
 
   const tabs = [
-    { label: 'Overview',       href: '/admin/finance' },
-    { label: 'Fee Structures', href: '/admin/finance/fees',         badge: feeCount },
-    { label: 'Invoices',       href: '/admin/finance/invoices',     badge: unpaidCount },
-    { label: 'Scholarships',   href: '/admin/finance/scholarships', badge: scholarshipCount },
+    { label: 'Overview',       href: '/admin/finance',              icon: 'LayoutDashboard', group: 'overview' },
+    { label: 'Fee Structures', href: '/admin/finance/fees',         icon: 'CreditCard',      badge: feeCount,         group: 'billing' },
+    { label: 'Invoices',       href: '/admin/finance/invoices',     icon: 'FileText',        badge: unpaidCount,      group: 'billing' },
+    { label: 'Scholarships',   href: '/admin/finance/scholarships', icon: 'Award',           badge: scholarshipCount, group: 'aid' },
   ]
 
   return (
@@ -32,8 +32,8 @@ export default async function FinanceLayout({ children }: { children: React.Reac
         </div>
         {/* Module identity */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <DollarSign className="w-5 h-5 text-blue-600" />
+          <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <DollarSign className="w-5 h-5 text-indigo-600" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900 leading-none">Finance</h1>

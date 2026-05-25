@@ -1,16 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import BookingSection from './_components/BookingSection'
+import ROICalculator from './_components/ROICalculator'
+import IntegrationsSection from './_components/IntegrationsSection'
+import SwitchingSection from './_components/SwitchingSection'
+import WhatsAppShowcase from './_components/WhatsAppShowcase'
+import MobileAppSection from './_components/MobileAppSection'
 import { Badge } from '@/components/ui/badge'
 import {
   CheckCircle, ArrowRight, Star, Zap, Shield, Globe,
   GraduationCap, CreditCard, Video, Users, Bell,
   ChevronDown, BarChart2, BookOpen, Calendar, MessageSquare,
-  Briefcase, Palette, ExternalLink, X, TrendingUp,
-  Smartphone, Wifi, Languages, AlertTriangle, FileSpreadsheet,
-  Brain, Award, Building2, ChevronRight, Library,
+  Briefcase, Palette, ExternalLink, TrendingUp,
+  Smartphone, Wifi, Languages, FileSpreadsheet,
+  Brain, Award, Building2, ChevronRight, Library, X,
 } from 'lucide-react'
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
@@ -42,17 +48,17 @@ const portalData: Record<PortalTab, {
     ],
     stats: [
       { label: 'Courses', value: '6', color: 'text-blue-600', bg: 'bg-blue-50' },
-      { label: 'GPA', value: '3.7', color: 'text-green-600', bg: 'bg-green-50' },
-      { label: 'Balance', value: '$0', color: 'text-gray-700', bg: 'bg-gray-100' },
+      { label: 'GPA', value: '3.7', color: 'text-blue-500', bg: 'bg-blue-50' },
+      { label: 'Balance', value: '$0', color: 'text-blue-700', bg: 'bg-blue-100' },
     ],
     items: [
-      { dot: 'bg-purple-500', title: 'CS 301 — Live Class', sub: 'Today 10:00 AM' },
-      { dot: 'bg-orange-400', title: 'Assignment: Data Structures', sub: 'Due tomorrow' },
-      { dot: 'bg-red-400', title: 'Exam: Database Systems', sub: 'Fri, 14 Jun' },
+      { dot: 'bg-blue-500', title: 'CS 301 — Live Class', sub: 'Today 10:00 AM' },
+      { dot: 'bg-blue-400', title: 'Assignment: Data Structures', sub: 'Due tomorrow' },
+      { dot: 'bg-blue-700', title: 'Exam: Database Systems', sub: 'Fri, 14 Jun' },
     ],
   },
   Teacher: {
-    color: 'bg-indigo-600', accent: 'text-indigo-600', label: 'Staff Portal',
+    color: 'bg-blue-600', accent: 'text-blue-600', label: 'Staff Portal',
     nav: [
       { icon: BarChart2, label: 'Dashboard', active: true },
       { icon: BookOpen, label: 'My Courses', active: false },
@@ -61,14 +67,14 @@ const portalData: Record<PortalTab, {
       { icon: GraduationCap, label: 'Grades', active: false },
     ],
     stats: [
-      { label: 'Courses', value: '4', color: 'text-indigo-600', bg: 'bg-indigo-50' },
-      { label: 'Students', value: '142', color: 'text-purple-600', bg: 'bg-purple-50' },
-      { label: 'Pending', value: '7', color: 'text-orange-600', bg: 'bg-orange-50' },
+      { label: 'Courses', value: '4', color: 'text-blue-600', bg: 'bg-blue-50' },
+      { label: 'Students', value: '142', color: 'text-blue-500', bg: 'bg-blue-50' },
+      { label: 'Pending', value: '7', color: 'text-blue-700', bg: 'bg-blue-100' },
     ],
     items: [
-      { dot: 'bg-indigo-500', title: 'Grade submissions due', sub: '12 ungraded essays' },
-      { dot: 'bg-green-500', title: 'Live class: CS 301', sub: 'Starts in 45 min' },
-      { dot: 'bg-yellow-400', title: 'Leave request approved', sub: '3 days — next week' },
+      { dot: 'bg-blue-600', title: 'Grade submissions due', sub: '12 ungraded essays' },
+      { dot: 'bg-blue-400', title: 'Live class: CS 301', sub: 'Starts in 45 min' },
+      { dot: 'bg-blue-300', title: 'Leave request approved', sub: '3 days — next week' },
     ],
   },
   Admin: {
@@ -82,17 +88,17 @@ const portalData: Record<PortalTab, {
     ],
     stats: [
       { label: 'Students', value: '1,240', color: 'text-blue-600', bg: 'bg-blue-50' },
-      { label: 'Staff', value: '86', color: 'text-indigo-600', bg: 'bg-indigo-50' },
-      { label: 'Collected', value: '$48k', color: 'text-green-600', bg: 'bg-green-50' },
+      { label: 'Staff', value: '86', color: 'text-blue-500', bg: 'bg-blue-50' },
+      { label: 'Collected', value: '$48k', color: 'text-blue-700', bg: 'bg-blue-100' },
     ],
     items: [
-      { dot: 'bg-orange-400', title: '3 leave requests pending', sub: 'HR · Needs review' },
-      { dot: 'bg-blue-500', title: 'Semester 2 registration open', sub: '340 enrolled so far' },
-      { dot: 'bg-green-500', title: 'Fee collection 94%', sub: 'Up from 60% last term' },
+      { dot: 'bg-blue-400', title: '3 leave requests pending', sub: 'HR · Needs review' },
+      { dot: 'bg-blue-600', title: 'Semester 2 registration open', sub: '340 enrolled so far' },
+      { dot: 'bg-blue-500', title: 'Fee collection 94%', sub: 'Up from 60% last term' },
     ],
   },
   Parent: {
-    color: 'bg-teal-600', accent: 'text-teal-600', label: 'Parent Portal',
+    color: 'bg-blue-600', accent: 'text-blue-600', label: 'Parent Portal',
     nav: [
       { icon: BarChart2, label: 'Dashboard', active: true },
       { icon: GraduationCap, label: 'Grades', active: false },
@@ -101,14 +107,14 @@ const portalData: Record<PortalTab, {
       { icon: Calendar, label: 'Attendance', active: false },
     ],
     stats: [
-      { label: 'GPA', value: '3.7', color: 'text-green-600', bg: 'bg-green-50' },
-      { label: 'Attend.', value: '95%', color: 'text-teal-600', bg: 'bg-teal-50' },
-      { label: 'Balance', value: '$0', color: 'text-gray-700', bg: 'bg-gray-100' },
+      { label: 'GPA', value: '3.7', color: 'text-blue-600', bg: 'bg-blue-50' },
+      { label: 'Attend.', value: '95%', color: 'text-blue-500', bg: 'bg-blue-50' },
+      { label: 'Balance', value: '$0', color: 'text-blue-700', bg: 'bg-blue-100' },
     ],
     items: [
-      { dot: 'bg-green-500', title: 'Semester 1 fees — Paid', sub: 'Receipt available' },
-      { dot: 'bg-blue-500', title: 'Results published', sub: 'GPA: 3.7 · View now' },
-      { dot: 'bg-teal-500', title: 'Message from Dr. Osei', sub: '"Amara\'s progress is excellent"' },
+      { dot: 'bg-blue-500', title: 'Semester 1 fees — Paid', sub: 'Receipt available' },
+      { dot: 'bg-blue-600', title: 'Results published', sub: 'GPA: 3.7 · View now' },
+      { dot: 'bg-blue-400', title: 'Message from Dr. Osei', sub: '"Amara\'s progress is excellent"' },
     ],
   },
 }
@@ -123,56 +129,124 @@ const faqs = [
   { q: 'Can we import existing student data?', a: 'Yes. We support bulk CSV import for students, staff, and courses. Our migration wizard guides you through field mapping step by step.' },
 ]
 
+const WINS = [
+  {
+    label: 'Records', icon: FileSpreadsheet,
+    before: 'Student records scattered across separate Excel files per department — impossible to reconcile or audit.',
+    after: 'Every student record in one searchable platform, fully auditable and accessible in seconds.',
+    metric: '80% less admin time on records',
+  },
+  {
+    label: 'Finance', icon: CreditCard,
+    before: 'Bursar spends hours every Friday chasing fee payments over WhatsApp messages and phone calls.',
+    after: 'Automated invoices sent on the due date with a one-tap MoMo or Paystack payment link.',
+    metric: '60% → 94% avg. collection rate',
+  },
+  {
+    label: 'Results', icon: Bell,
+    before: 'Results printed and pinned to the notice board — parents find out days or weeks later.',
+    after: 'Results published in one click, parents and students notified instantly via SMS and push.',
+    metric: 'Delivery: weeks → seconds',
+  },
+  {
+    label: 'Timetable', icon: Calendar,
+    before: 'Timetable clashes only discovered when two classes show up in the same room on day one.',
+    after: 'AI scheduler builds a fully conflict-free timetable and catches every clash before it happens.',
+    metric: '100% clash-free scheduling',
+  },
+  {
+    label: 'Payroll', icon: Briefcase,
+    before: 'Staff payroll calculated manually in Excel every month — prone to errors and constant delays.',
+    after: 'Payroll runs in minutes, payslips auto-generated and emailed to every staff member.',
+    metric: '3 hours → 8 minutes',
+  },
+  {
+    label: 'Retention', icon: Brain,
+    before: 'No way to identify students at risk of dropping out until it is already too late to help.',
+    after: 'AI flags dropout risk weeks early based on attendance, grades, and engagement patterns.',
+    metric: '30% fewer student dropouts',
+  },
+]
+
 // ─── COMPONENTS ──────────────────────────────────────────────────────────────
 
 function PortalMockup({ portal }: { portal: PortalTab }) {
   const d = portalData[portal]
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden max-w-2xl mx-auto">
-      <div className="bg-gray-100 px-4 py-2.5 flex items-center gap-3 border-b border-gray-200">
+    <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden w-full">
+      {/* Browser bar */}
+      <div className="bg-gray-100 px-4 py-3 flex items-center gap-3 border-b border-gray-200">
         <div className="flex gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-          <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+          <div className="w-3 h-3 rounded-full bg-red-400" />
+          <div className="w-3 h-3 rounded-full bg-yellow-400" />
+          <div className="w-3 h-3 rounded-full bg-green-400" />
         </div>
-        <div className="flex-1 bg-white rounded px-3 py-0.5 text-xs text-gray-400 text-center">portal.yourschool.cm/{portal.toLowerCase()}</div>
+        <div className="flex-1 bg-white rounded-md px-3 py-1 text-xs text-gray-400 text-center">
+          portal.greenfield.cm/{portal.toLowerCase()}
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-blue-600 font-medium">
+          <Shield className="w-3 h-3" /> Secure
+        </div>
       </div>
-      <div className="flex" style={{ height: '280px' }}>
-        <div className="w-40 bg-white border-r border-gray-100 flex flex-col flex-shrink-0">
+      {/* Content */}
+      <div className="flex" style={{ height: '460px' }}>
+        {/* Sidebar */}
+        <div className="w-48 bg-white border-r border-gray-100 flex flex-col flex-shrink-0">
           <div className="p-3 border-b border-gray-100 flex items-center gap-2">
-            <div className={`w-5 h-5 ${d.color} rounded-md flex items-center justify-center`}>
-              <span className="text-white font-bold text-[9px]">T</span>
+            <div className={`w-7 h-7 ${d.color} rounded-lg flex items-center justify-center`}>
+              <span className="text-white font-bold text-xs">G</span>
             </div>
-            <p className={`text-[10px] font-bold ${d.accent}`}>{d.label}</p>
+            <div>
+              <p className="text-xs font-bold text-gray-900 leading-none">Greenfield</p>
+              <p className={`text-[10px] ${d.accent}`}>{d.label}</p>
+            </div>
           </div>
           <nav className="p-2 space-y-0.5 flex-1">
             {d.nav.map((item) => (
-              <div key={item.label} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] ${item.active ? `bg-blue-50 ${d.accent} font-medium` : 'text-gray-400'}`}>
-                <item.icon className="w-3 h-3 flex-shrink-0" />
+              <div key={item.label} className={`flex items-center gap-2 px-2 py-2 rounded-lg text-xs ${item.active ? `bg-blue-50 ${d.accent} font-semibold` : 'text-gray-500'}`}>
+                <item.icon className={`w-3.5 h-3.5 flex-shrink-0 ${item.active ? d.accent : 'text-gray-400'}`} />
                 {item.label}
               </div>
             ))}
           </nav>
+          <div className="p-3 border-t border-gray-100 flex items-center gap-2">
+            <div className={`w-7 h-7 rounded-full ${d.color} flex items-center justify-center text-white text-[10px] font-bold`}>A</div>
+            <div>
+              <p className="text-[10px] font-semibold text-gray-700">Amara Mensah</p>
+              <p className="text-[9px] text-gray-400">Year 3 · CS</p>
+            </div>
+          </div>
         </div>
-        <div className="flex-1 bg-gray-50 p-4 overflow-hidden">
-          <p className="text-xs font-bold text-gray-900 mb-3">Overview</p>
-          <div className="grid grid-cols-3 gap-2 mb-3">
+        {/* Main */}
+        <div className="flex-1 bg-gray-50 p-5 overflow-hidden">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm font-bold text-gray-900">Good morning, Amara</p>
+              <p className="text-[10px] text-gray-400">Monday, 25 May 2026</p>
+            </div>
+            <div className={`w-8 h-8 ${d.color} rounded-xl flex items-center justify-center`}>
+              <Bell className="w-3.5 h-3.5 text-white" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mb-4">
             {d.stats.map((s) => (
-              <div key={s.label} className="bg-white rounded-xl p-2 border border-gray-100">
-                <div className={`w-5 h-5 ${s.bg} rounded-md flex items-center justify-center mb-1`}>
-                  <span className={`text-[9px] font-bold ${s.color}`}>{s.value}</span>
+              <div key={s.label} className="bg-white rounded-xl p-3 border border-gray-100 shadow-sm">
+                <div className={`w-6 h-6 ${s.bg} rounded-lg flex items-center justify-center mb-2`}>
+                  <div className={`w-2 h-2 rounded-full ${s.color.replace('text-', 'bg-')}`} />
                 </div>
-                <p className="text-[9px] text-gray-400">{s.label}</p>
+                <p className={`text-lg font-bold leading-none ${s.color}`}>{s.value}</p>
+                <p className="text-[10px] text-gray-400 mt-1">{s.label}</p>
               </div>
             ))}
           </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-3 space-y-2">
+          <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
+            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide">Activity</p>
             {d.items.map((item) => (
-              <div key={item.title} className="flex items-start gap-2">
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1 ${item.dot}`} />
+              <div key={item.title} className="flex items-start gap-2.5">
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${item.dot}`} />
                 <div>
-                  <p className="text-[10px] font-medium text-gray-800">{item.title}</p>
-                  <p className="text-[9px] text-gray-400">{item.sub}</p>
+                  <p className="text-xs font-medium text-gray-800">{item.title}</p>
+                  <p className="text-[10px] text-gray-400">{item.sub}</p>
                 </div>
               </div>
             ))}
@@ -186,12 +260,23 @@ function PortalMockup({ portal }: { portal: PortalTab }) {
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className={`border rounded-2xl overflow-hidden transition-colors ${open ? 'border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/20' : 'border-gray-200 dark:border-gray-800'}`}>
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-        <span className="font-medium text-gray-900 dark:text-white text-sm pr-4">{q}</span>
-        <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${open ? 'rotate-180 text-blue-500' : 'text-gray-400 dark:text-gray-500'}`} />
+    <div className={`border-b transition-colors ${open ? 'border-blue-100 dark:border-blue-900' : 'border-gray-100 dark:border-gray-800'}`}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-start justify-between py-5 text-left gap-4 group"
+      >
+        <span className={`font-semibold text-sm leading-snug transition-colors ${open ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400'}`}>
+          {q}
+        </span>
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${open ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'}`}>
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        </div>
       </button>
-      {open && <div className="px-6 pb-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed border-t border-gray-100 dark:border-gray-800 pt-3">{a}</div>}
+      {open && (
+        <div className="pb-5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed pr-10">
+          {a}
+        </div>
+      )}
     </div>
   )
 }
@@ -492,10 +577,10 @@ function FeatureSection() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(i)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   isActive
-                    ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40 scale-[1.03]'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-white dark:hover:bg-gray-800'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -513,27 +598,29 @@ function FeatureSection() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-6"
+            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg shadow-gray-100 dark:shadow-gray-900 overflow-hidden mb-6 border-t-2 border-t-blue-500"
           >
             <div className="grid md:grid-cols-2 gap-0">
               {/* Left — text */}
               <div className="p-8 md:p-10 flex flex-col justify-center">
-                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-950 rounded-xl flex items-center justify-center mb-5">
-                  <ActiveIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-200 dark:shadow-blue-900/40">
+                  <ActiveIcon className="w-7 h-7 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 leading-snug">{active.title}</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">{active.description}</p>
-                <ul className="space-y-2.5">
+                <ul className="space-y-3">
                   {active.points.map((pt) => (
-                    <li key={pt} className="flex items-start gap-2.5">
-                      <CheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <li key={pt} className="flex items-start gap-3">
+                      <div className="w-5 h-5 bg-blue-50 dark:bg-blue-950 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <CheckCircle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      </div>
                       <span className="text-sm text-gray-600 dark:text-gray-300">{pt}</span>
                     </li>
                   ))}
                 </ul>
               </div>
               {/* Right — mockup */}
-              <div className="bg-gray-50 dark:bg-gray-900 border-t md:border-t-0 md:border-l border-gray-100 dark:border-gray-700 p-8 flex items-center justify-center">
+              <div className="bg-blue-50/40 dark:bg-gray-900 border-t md:border-t-0 md:border-l border-blue-100 dark:border-gray-700 p-8 flex items-center justify-center">
                 <div className="w-full max-w-sm">
                   {active.mockup}
                 </div>
@@ -557,10 +644,10 @@ function FeatureSection() {
                 key={f.title}
                 variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-default"
+                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-blue-50 dark:hover:shadow-blue-950/20 transition-all cursor-default"
               >
-                <div className="w-8 h-8 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center justify-center mb-3">
-                  <Icon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                <div className="w-9 h-9 bg-blue-50 dark:bg-blue-950/50 rounded-xl flex items-center justify-center mb-3">
+                  <Icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h4 className="text-sm font-semibold text-gray-800 dark:text-white mb-1">{f.title}</h4>
                 <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{f.description}</p>
@@ -584,11 +671,80 @@ function FeatureSection() {
   )
 }
 
+// ─── Newsletter ───────────────────────────────────────────────────────────────
+
+function NewsletterForm() {
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+
+  function submit(e: React.SyntheticEvent) {
+    e.preventDefault()
+    setSent(true)
+  }
+
+  if (sent) {
+    return (
+      <div className="inline-flex items-center gap-2 bg-white/15 text-white rounded-2xl px-6 py-3 font-semibold text-sm">
+        <CheckCircle className="w-4 h-4" /> You are subscribed — welcome aboard!
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+      <input
+        type="email" required
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        placeholder="your@email.com"
+        className="flex-1 px-4 py-3 rounded-xl text-sm bg-white/15 border border-white/20 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/40"
+      />
+      <button
+        type="submit"
+        className="px-6 py-3 bg-white text-blue-700 font-semibold rounded-xl text-sm hover:bg-blue-50 transition-colors flex-shrink-0"
+      >
+        Subscribe
+      </button>
+    </form>
+  )
+}
+
 // ─── PAGE ────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
   const [activePortal, setActivePortal] = useState<PortalTab>('Student')
   const [annual, setAnnual] = useState(true)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const startAutoSwipe = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    intervalRef.current = setInterval(() => {
+      setActivePortal(prev => {
+        const idx = portalTabs.indexOf(prev)
+        return portalTabs[(idx + 1) % portalTabs.length]
+      })
+    }, 3500)
+  }, [])
+
+  useEffect(() => {
+    startAutoSwipe()
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+  }, [startAutoSwipe])
+
+  const [activeWin, setActiveWin] = useState(0)
+  const winIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const startWinAutoSwipe = useCallback(() => {
+    if (winIntervalRef.current) clearInterval(winIntervalRef.current)
+    winIntervalRef.current = setInterval(() => {
+      setActiveWin(prev => (prev + 1) % WINS.length)
+    }, 4000)
+  }, [])
+
+  useEffect(() => {
+    startWinAutoSwipe()
+    return () => { if (winIntervalRef.current) clearInterval(winIntervalRef.current) }
+  }, [startWinAutoSwipe])
 
   const pricingPlans = [
     {
@@ -623,30 +779,29 @@ export default function HomePage() {
       {/* ── Hero ── */}
       <section className="relative overflow-hidden pt-12 pb-0 lg:pt-20">
         {/* Background mesh */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,#dbeafe,transparent)] pointer-events-none" />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-100 rounded-full blur-3xl opacity-40 pointer-events-none" />
-        <div className="absolute top-0 right-1/4 w-72 h-72 bg-blue-100 rounded-full blur-3xl opacity-50 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,#dbeafe,transparent)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(37,99,235,0.15),transparent)] pointer-events-none" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-100 dark:bg-indigo-900/20 rounded-full blur-3xl opacity-40 pointer-events-none" />
+        <div className="absolute top-0 right-1/4 w-72 h-72 bg-blue-100 dark:bg-blue-900/20 rounded-full blur-3xl opacity-50 pointer-events-none" />
 
         <div className="relative max-w-6xl mx-auto px-6">
           {/* Pill badge */}
           <div className="flex justify-center mb-10">
             <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-sm rounded-full px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300 font-medium">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-              AI-powered · Powered by Claude · Now live in 15+ countries
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+              Now live in 15+ countries across Africa
             </div>
           </div>
 
           {/* Headline — centred */}
           <div className="text-center mb-8 max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-6xl lg:text-[72px] font-bold text-gray-900 leading-[1.05] tracking-tight mb-6">
+            <h1 className="text-5xl md:text-6xl lg:text-[72px] font-bold text-gray-900 dark:text-white leading-[1.05] tracking-tight mb-6">
               The school platform<br />
               <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 bg-clip-text text-transparent">
                 built for Africa
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto">
-              Academics, finance, HR, live classes, and student portals —
-              all under your school's brand.
+            <p className="text-lg md:text-xl text-gray-500 dark:text-gray-400 leading-relaxed max-w-2xl mx-auto">
+              Replace the WhatsApp groups and Excel sheets. Run your whole institution — academics, finance, HR, and live classes — from one platform under your school's brand.
             </p>
           </div>
 
@@ -655,7 +810,7 @@ export default function HomePage() {
             <Link href="/register" className="flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-base font-semibold transition-all shadow-xl shadow-blue-200 hover:-translate-y-0.5 active:translate-y-0">
               Start free trial <ArrowRight className="w-4 h-4" />
             </Link>
-            <a href="/contact" className="flex items-center gap-2 px-8 py-4 bg-white border border-gray-200 text-gray-700 rounded-2xl text-base font-semibold hover:bg-gray-50 transition-all hover:-translate-y-0.5 active:translate-y-0">
+            <a href="/contact" className="flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-2xl text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all hover:-translate-y-0.5 active:translate-y-0">
               Book a demo
             </a>
           </div>
@@ -679,13 +834,30 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Dashboard mockup — full width, fades into next section */}
-          <div className="relative max-w-5xl mx-auto">
-            {/* Glow behind */}
-            <div className="absolute inset-x-0 -top-4 h-40 bg-blue-100/60 blur-3xl rounded-full pointer-events-none" />
+          {/* Portal tab switcher */}
+          <div className="flex items-center justify-center gap-1.5 mb-8">
+            {portalTabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => { setActivePortal(tab); startAutoSwipe() }}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  activePortal === tab
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40'
+                    : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
 
-            {/* Floating badges */}
-            <div className="absolute -left-4 lg:-left-16 top-12 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3 z-20 hidden md:flex">
+          {/* Dashboard mockup — 3D tilted, fades into next section */}
+          <div className="relative max-w-6xl mx-auto" style={{ perspective: '1400px' }}>
+            {/* Glow behind */}
+            <div className="absolute inset-x-0 -top-8 h-56 bg-blue-200/50 dark:bg-blue-900/25 blur-3xl rounded-full pointer-events-none" />
+
+            {/* Floating badges — counter-tilted so they appear flat */}
+            <div className="absolute -left-4 lg:-left-8 top-12 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3 z-20 hidden md:flex" style={{ transform: 'rotateX(-5deg) rotateY(4deg)' }}>
               <div className="w-8 h-8 bg-green-100 dark:bg-green-950/50 rounded-xl flex items-center justify-center">
                 <CheckCircle className="w-4 h-4 text-green-600" />
               </div>
@@ -694,7 +866,7 @@ export default function HomePage() {
                 <p className="text-[10px] text-gray-400">via MTN MoMo</p>
               </div>
             </div>
-            <div className="absolute -right-4 lg:-right-16 top-20 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3 z-20 hidden md:flex">
+            <div className="absolute -right-4 lg:-right-8 top-20 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3 z-20 hidden md:flex" style={{ transform: 'rotateX(-5deg) rotateY(-4deg)' }}>
               <div className="w-8 h-8 bg-blue-100 dark:bg-blue-950/50 rounded-xl flex items-center justify-center">
                 <Video className="w-4 h-4 text-blue-600" />
               </div>
@@ -703,135 +875,31 @@ export default function HomePage() {
                 <p className="text-[10px] text-gray-400">CS 301 · 2 min</p>
               </div>
             </div>
-            <div className="absolute -left-4 lg:-left-12 bottom-28 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3 z-20 hidden lg:flex">
-              <div className="w-8 h-8 bg-yellow-100 dark:bg-yellow-950/50 rounded-xl flex items-center justify-center">
-                <Star className="w-4 h-4 text-yellow-500 fill-yellow-400" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-gray-900 dark:text-white">GPA: 3.7</p>
-                <p className="text-[10px] text-gray-400">Dean's List</p>
-              </div>
-            </div>
-            <div className="absolute -right-4 lg:-right-12 bottom-20 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3 z-20 hidden lg:flex">
-              <div className="w-8 h-8 bg-purple-100 dark:bg-purple-950/50 rounded-xl flex items-center justify-center">
-                <Bell className="w-4 h-4 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-gray-900 dark:text-white">Results live</p>
-                <p className="text-[10px] text-gray-400">Semester 1 · 2026</p>
-              </div>
+
+            {/* 3D tilt wrapper */}
+            <div
+              className="relative rounded-2xl"
+              style={{
+                transform: 'rotateX(8deg) rotateY(-3deg)',
+                transformStyle: 'preserve-3d',
+                boxShadow: '0 40px 80px -20px rgba(59,130,246,0.25), 0 24px 48px -12px rgba(0,0,0,0.18)',
+              }}
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activePortal}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25, ease: 'easeInOut' }}
+                >
+                  <PortalMockup portal={activePortal} />
+                </motion.div>
+              </AnimatePresence>
             </div>
 
-            {/* Browser chrome + dashboard */}
-            <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-              {/* Browser bar */}
-              <div className="bg-gray-100 px-4 py-3 flex items-center gap-3 border-b border-gray-200">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                </div>
-                <div className="flex-1 bg-white rounded-md px-3 py-1 text-xs text-gray-400 text-center">portal.greenfield.cm/student</div>
-                <div className="flex items-center gap-1 text-[10px] text-green-600 font-medium">
-                  <Shield className="w-3 h-3" /> Secure
-                </div>
-              </div>
-              {/* Dashboard content */}
-              <div className="flex" style={{ height: '360px' }}>
-                {/* Sidebar */}
-                <div className="w-44 bg-white border-r border-gray-100 flex flex-col flex-shrink-0">
-                  <div className="p-3 border-b border-gray-100 flex items-center gap-2">
-                    <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold text-xs">G</span>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-900 leading-none">Greenfield</p>
-                      <p className="text-[10px] text-blue-600">Student Portal</p>
-                    </div>
-                  </div>
-                  <nav className="p-2 space-y-0.5 flex-1">
-                    {[
-                      { icon: BarChart2, label: 'Dashboard', active: true },
-                      { icon: BookOpen, label: 'My Courses', active: false },
-                      { icon: Calendar, label: 'Timetable', active: false },
-                      { icon: CreditCard, label: 'Fees', active: false },
-                      { icon: GraduationCap, label: 'Grades', active: false },
-                      { icon: MessageSquare, label: 'Messages', active: false },
-                    ].map((item) => (
-                      <div key={item.label} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs ${item.active ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-500'}`}>
-                        <item.icon className={`w-3 h-3 flex-shrink-0 ${item.active ? 'text-blue-600' : 'text-gray-400'}`} />
-                        {item.label}
-                      </div>
-                    ))}
-                  </nav>
-                  <div className="p-3 border-t border-gray-100 flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-[10px] font-bold">A</div>
-                    <div>
-                      <p className="text-[10px] font-semibold text-gray-700">Amara Mensah</p>
-                      <p className="text-[9px] text-gray-400">Year 3 · CS</p>
-                    </div>
-                  </div>
-                </div>
-                {/* Main content */}
-                <div className="flex-1 bg-gray-50 p-5 overflow-hidden">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-sm font-bold text-gray-900">Good morning, Amara</p>
-                      <p className="text-[10px] text-gray-400">Monday, 11 May 2026</p>
-                    </div>
-                    <div className="w-7 h-7 bg-blue-600 rounded-xl flex items-center justify-center">
-                      <Bell className="w-3.5 h-3.5 text-white" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2 mb-4">
-                    {[
-                      { label: 'Courses', value: '6', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-                      { label: 'GPA', value: '3.7', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
-                      { label: 'Balance', value: '$0', color: 'text-gray-700', bg: 'bg-gray-100', border: 'border-gray-200' },
-                      { label: 'Attend.', value: '95%', color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-100' },
-                    ].map((s) => (
-                      <div key={s.label} className={`bg-white rounded-xl p-2.5 border ${s.border}`}>
-                        <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
-                        <p className="text-[9px] text-gray-400 mt-0.5">{s.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-5 gap-2">
-                    <div className="col-span-3 bg-white rounded-xl border border-gray-100 p-3">
-                      <p className="text-[10px] font-semibold text-gray-700 mb-2">Upcoming</p>
-                      <div className="space-y-2">
-                        {[
-                          { dot: 'bg-purple-500', name: 'CS 301 — Live Class', time: 'Today 10:00 AM' },
-                          { dot: 'bg-orange-400', name: 'Assignment due', time: 'Tomorrow' },
-                          { dot: 'bg-red-400', name: 'Exam: Database Systems', time: 'Fri 14 Jun' },
-                        ].map((item) => (
-                          <div key={item.name} className="flex items-center gap-2">
-                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.dot}`} />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[9px] font-medium text-gray-800 truncate">{item.name}</p>
-                              <p className="text-[8px] text-gray-400">{item.time}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="col-span-2 space-y-2">
-                      <div className="bg-blue-600 rounded-xl p-3 text-white">
-                        <p className="text-[9px] font-semibold mb-1">AI Advisor</p>
-                        <p className="text-[8px] text-blue-100 leading-relaxed">"Register CS 401 next — keeps you on track for May 2027 graduation."</p>
-                      </div>
-                      <div className="bg-white rounded-xl border border-gray-100 p-3">
-                        <p className="text-[9px] font-semibold text-gray-700 mb-1">Fees</p>
-                        <p className="text-[8px] text-green-600 font-semibold">Fully paid</p>
-                        <p className="text-[8px] text-gray-400">via MTN MoMo</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
             {/* Fade to white at bottom */}
-            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white dark:from-gray-950 to-transparent pointer-events-none rounded-b-2xl" />
           </div>
         </div>
       </section>
@@ -841,7 +909,10 @@ export default function HomePage() {
         <p className="text-center text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-8">
           Trusted by institutions across Africa
         </p>
-        <div className="relative">
+        <div
+          className="relative"
+          style={{ maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)' }}
+        >
           <div className="flex animate-marquee gap-12 whitespace-nowrap">
             {[...schools, ...schools].map((school, i) => (
               <div key={i} className="flex items-center gap-2.5 flex-shrink-0">
@@ -875,68 +946,108 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── The old way vs Tera SM ── */}
-      <section className="py-24 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Replace the chaos, not just the tools</h2>
-            <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
-              Most African institutions run critical operations on WhatsApp groups and Excel sheets. Here's what changes.
+      {/* ── Why choose Tera SM ── */}
+      <section className="py-24 bg-gray-950">
+        <div className="max-w-4xl mx-auto px-6">
+
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-blue-950/60 border border-blue-800/50 rounded-full px-4 py-1.5 text-sm text-blue-400 font-medium mb-6">
+              <Zap className="w-3.5 h-3.5" />
+              Why choose Tera SM
+            </div>
+            <h2 className="text-4xl font-bold text-white mb-4">Replace the chaos, not just the tools</h2>
+            <p className="text-slate-400 max-w-xl mx-auto leading-relaxed">
+              Most institutions run on WhatsApp groups and Excel sheets. Here is what changes the day you switch.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Before */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl border-2 border-red-100 dark:border-red-900/50 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 bg-red-50 dark:bg-red-950/50 rounded-xl flex items-center justify-center">
-                  <X className="w-5 h-5 text-red-500" />
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white">Before Tera SM</h3>
-              </div>
-              <ul className="space-y-4">
-                {[
-                  { icon: FileSpreadsheet, text: 'Student records scattered across Excel files per department' },
-                  { icon: MessageSquare, text: 'Fee reminders sent manually via WhatsApp by the bursar' },
-                  { icon: AlertTriangle, text: 'Results published on notice boards — parents never see them' },
-                  { icon: Calendar, text: 'Timetable clashes discovered only when two classes show up in the same room' },
-                  { icon: FileSpreadsheet, text: 'Staff payroll calculated by hand in Excel every month' },
-                  { icon: AlertTriangle, text: "No way to detect students at risk of dropping out until it's too late" },
-                ].map(({ icon: Icon, text }) => (
-                  <li key={text} className="flex items-start gap-3">
-                    <div className="w-7 h-7 bg-red-50 dark:bg-red-950/50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Icon className="w-3.5 h-3.5 text-red-400" />
+
+          {/* Tab pills */}
+          <div className="flex flex-wrap justify-center gap-2 mb-10">
+            {WINS.map((w, i) => {
+              const Icon = w.icon
+              return (
+                <button
+                  key={i}
+                  onClick={() => { setActiveWin(i); startWinAutoSwipe() }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                    activeWin === i
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
+                      : 'bg-white/5 border border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-300'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {w.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Comparison card */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeWin}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+            >
+              <div className="grid md:grid-cols-2 gap-4 mb-6">
+                {/* Before */}
+                <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-8">
+                  <div className="flex items-center gap-2.5 mb-5">
+                    <div className="w-7 h-7 bg-red-500/15 rounded-lg flex items-center justify-center">
+                      <X className="w-3.5 h-3.5 text-red-400" />
                     </div>
-                    <span className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {/* After */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl border-2 border-green-100 dark:border-green-900/50 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 bg-green-50 dark:bg-green-950/50 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span className="text-xs font-bold text-red-400 uppercase tracking-widest">Before</span>
+                  </div>
+                  <p className="text-slate-300 text-base leading-relaxed">{WINS[activeWin].before}</p>
                 </div>
-                <h3 className="font-bold text-gray-900 dark:text-white">With Tera SM</h3>
-              </div>
-              <ul className="space-y-4">
-                {[
-                  { icon: Users, text: 'Single source of truth for every student, staff, and course record' },
-                  { icon: CreditCard, text: 'Automated fee invoicing with MoMo, Paystack, and bank transfer' },
-                  { icon: Bell, text: 'Results published instantly — parents get SMS + push notification' },
-                  { icon: Calendar, text: "AI timetable generator catches clashes before they're scheduled" },
-                  { icon: Briefcase, text: 'Payroll calculated and payslips generated in one click' },
-                  { icon: Brain, text: 'AI early warning flags at-risk students weeks before they drop out' },
-                ].map(({ icon: Icon, text }) => (
-                  <li key={text} className="flex items-start gap-3">
-                    <div className="w-7 h-7 bg-green-50 dark:bg-green-950/50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Icon className="w-3.5 h-3.5 text-green-500" />
+
+                {/* After */}
+                <div className="bg-blue-600 rounded-3xl p-8">
+                  <div className="flex items-center gap-2.5 mb-5">
+                    <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
                     </div>
-                    <span className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                    <span className="text-xs font-bold text-blue-100 uppercase tracking-widest">With Tera SM</span>
+                  </div>
+                  <p className="text-white text-base leading-relaxed">{WINS[activeWin].after}</p>
+                </div>
+              </div>
+
+              {/* Metric callout */}
+              <div className="flex justify-center">
+                <div className="inline-flex items-center gap-3 bg-blue-950/70 border border-blue-500/25 rounded-2xl px-8 py-4">
+                  <TrendingUp className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                  <span className="text-xl font-bold text-white">{WINS[activeWin].metric}</span>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Progress dots */}
+          <div className="flex justify-center gap-2 mt-8">
+            {WINS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { setActiveWin(i); startWinAutoSwipe() }}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  activeWin === i ? 'w-8 bg-blue-500' : 'w-2 bg-white/20 hover:bg-white/40'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="text-center mt-12">
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-semibold transition-colors"
+            >
+              Stop the chaos — start your free trial <ArrowRight className="w-4 h-4" />
+            </Link>
+            <p className="text-slate-600 text-sm mt-3">14-day trial · No credit card required</p>
           </div>
         </div>
       </section>
@@ -976,12 +1087,15 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Mobile App ── */}
+      <MobileAppSection />
+
       {/* ── Africa-First ── */}
       <section className="py-24 bg-white dark:bg-gray-950">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900 rounded-full px-4 py-1.5 text-sm text-green-700 dark:text-green-400 font-medium mb-6">
+              <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 rounded-full px-4 py-1.5 text-sm text-blue-700 dark:text-blue-400 font-medium mb-6">
                 <Globe className="w-3.5 h-3.5" />
                 Africa-first design
               </div>
@@ -997,7 +1111,7 @@ export default function HomePage() {
                   { label: 'MTN Mobile Money', desc: 'Students pay fees directly via MoMo', color: 'bg-yellow-400' },
                   { label: 'Orange Money', desc: 'Supported across Francophone Africa', color: 'bg-orange-500' },
                   { label: 'Paystack', desc: 'Cards + bank transfers, Nigeria & beyond', color: 'bg-blue-600' },
-                  { label: "Africa's Talking SMS", desc: 'Bulk SMS to 40+ African networks', color: 'bg-green-600' },
+                  { label: "Africa's Talking SMS", desc: 'Bulk SMS to 40+ African networks', color: 'bg-blue-500' },
                   { label: 'French + English', desc: 'Fully bilingual — more languages coming', color: 'bg-indigo-600' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-4">
@@ -1018,8 +1132,8 @@ export default function HomePage() {
                 { icon: Languages, title: 'Bilingual support', desc: 'Switch between English and French in one click.' },
               ].map((card) => (
                 <div key={card.title} className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-5 border border-gray-100 dark:border-gray-800 hover:shadow-sm transition-shadow">
-                  <div className="w-9 h-9 bg-green-100 dark:bg-green-950/50 rounded-xl flex items-center justify-center mb-3">
-                    <card.icon className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <div className="w-9 h-9 bg-blue-50 dark:bg-blue-950/50 rounded-xl flex items-center justify-center mb-3">
+                    <card.icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   </div>
                   <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">{card.title}</h4>
                   <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{card.desc}</p>
@@ -1030,58 +1144,148 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── WhatsApp ── */}
+      <WhatsAppShowcase />
+
+      {/* ── Integrations ── */}
+      <IntegrationsSection />
+
       {/* ── Custom Domain ── */}
-      <section className="py-24 bg-gray-50 dark:bg-gray-900">
+      <section className="py-24 bg-gray-950">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Your portal. Your domain. Your brand.</h2>
-            <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
-              Students only ever see your school's name — not ours.
-            </p>
-          </div>
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-4">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Default</p>
-                <div className="flex items-center gap-3 bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-3">
-                  <Globe className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span className="text-sm text-gray-500 line-through">ubuea.terasms.com</span>
-                </div>
-              </div>
-              <div className="flex justify-center">
-                <div className="flex items-center gap-2 text-blue-600">
-                  <ArrowRight className="w-5 h-5" />
-                  <span className="text-sm font-medium">Custom domain active</span>
-                </div>
-              </div>
-              <div className="bg-blue-50 dark:bg-blue-950/30 rounded-2xl border border-blue-200 dark:border-blue-900 p-5">
-                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3">Your domain</p>
-                <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 border border-blue-100 dark:border-blue-900">
-                  <Shield className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">portal.ubuea.cm</span>
-                  <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">SSL ✓</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-6">
-              {[
-                { step: '01', title: 'Enter your domain', desc: 'Type your domain (e.g. portal.yourschool.cm) in the settings panel.' },
-                { step: '02', title: 'Add a DNS record', desc: 'Point a CNAME record to our servers — takes under 2 minutes in your registrar.' },
-                { step: '03', title: 'Go live instantly', desc: 'We handle the SSL certificate automatically. Your portal is live within minutes.' },
-              ].map((s) => (
-                <div key={s.step} className="flex gap-4">
-                  <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0">{s.step}</div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{s.title}</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{s.desc}</p>
+
+            {/* Left — branded portal preview */}
+            <div>
+              {/* Mini browser mockup */}
+              <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden mb-6" style={{ boxShadow: '0 32px 64px -16px rgba(0,0,0,0.5)' }}>
+                {/* Browser bar */}
+                <div className="bg-gray-100 px-4 py-3 flex items-center gap-3 border-b border-gray-200">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-400" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                    <div className="w-3 h-3 rounded-full bg-green-400" />
+                  </div>
+                  <div className="flex-1 bg-white rounded-md px-3 py-1.5 flex items-center gap-2 border border-gray-200">
+                    <Shield className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                    <span className="text-xs text-gray-700 font-medium">portal.ubuea.cm</span>
+                    <span className="ml-auto text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-semibold">SSL ✓</span>
                   </div>
                 </div>
-              ))}
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-3 text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                Average setup time: under 30 minutes
+                {/* Portal preview content */}
+                <div className="flex" style={{ height: '240px' }}>
+                  {/* Sidebar */}
+                  <div className="w-44 bg-white border-r border-gray-100 flex flex-col flex-shrink-0">
+                    <div className="p-3 border-b border-gray-100 flex items-center gap-2">
+                      <div className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center">
+                        <span className="text-white font-bold text-xs">UB</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-gray-900 leading-none">Univ. of Buea</p>
+                        <p className="text-[10px] text-blue-600">Student Portal</p>
+                      </div>
+                    </div>
+                    <nav className="p-2 space-y-0.5 flex-1">
+                      {[
+                        { icon: BarChart2, label: 'Dashboard', active: true },
+                        { icon: BookOpen, label: 'My Courses', active: false },
+                        { icon: CreditCard, label: 'Fees', active: false },
+                        { icon: GraduationCap, label: 'Grades', active: false },
+                      ].map((item) => (
+                        <div key={item.label} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs ${item.active ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-400'}`}>
+                          <item.icon className={`w-3 h-3 flex-shrink-0 ${item.active ? 'text-blue-600' : 'text-gray-300'}`} />
+                          {item.label}
+                        </div>
+                      ))}
+                    </nav>
+                    <div className="p-3 border-t border-gray-100">
+                      <p className="text-[9px] text-gray-300">© 2026 Univ. of Buea</p>
+                    </div>
+                  </div>
+                  {/* Main */}
+                  <div className="flex-1 bg-gray-50 p-4 overflow-hidden">
+                    <p className="text-xs font-bold text-gray-800 mb-1">Welcome back, Amara</p>
+                    <p className="text-[10px] text-gray-400 mb-4">portal.ubuea.cm · Powered by Tera SM</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: 'Courses', value: '6', bg: 'bg-blue-50', color: 'text-blue-600' },
+                        { label: 'GPA', value: '3.7', bg: 'bg-blue-50', color: 'text-blue-500' },
+                      ].map((s) => (
+                        <div key={s.label} className={`${s.bg} rounded-xl p-3`}>
+                          <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
+                          <p className="text-[9px] text-gray-400">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 bg-white rounded-xl border border-gray-100 p-3">
+                      <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Upcoming</p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                        <p className="text-[10px] text-gray-700">CS 301 — Live Class · Today 10:00 AM</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Domain flip */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                  <Globe className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <span className="text-sm text-gray-500 line-through">ubuea.terasms.com</span>
+                </div>
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <ArrowRight className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 flex items-center gap-2 bg-blue-600/10 border border-blue-500/30 rounded-xl px-4 py-3">
+                  <Shield className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                  <span className="text-sm text-blue-300 font-semibold">portal.ubuea.cm</span>
+                </div>
               </div>
             </div>
+
+            {/* Right — value prop + steps */}
+            <div>
+              <div className="inline-flex items-center gap-2 bg-blue-950/60 border border-blue-800/50 rounded-full px-4 py-1.5 text-sm text-blue-400 font-medium mb-6">
+                <Palette className="w-3.5 h-3.5" />
+                White-label branding
+              </div>
+              <h2 className="text-4xl font-bold text-white mb-3 leading-tight">
+                Your logo.<br />
+                Your colors.<br />
+                Your domain.
+              </h2>
+              <p className="text-slate-400 mb-10 leading-relaxed">
+                Students, parents, and staff only ever see your institution's name. Tera SM is invisible — it's your product.
+              </p>
+
+              {/* Timeline steps */}
+              <div className="relative space-y-0">
+                <div className="absolute left-4 top-5 bottom-5 w-px bg-blue-900" />
+                {[
+                  { title: 'Enter your domain', desc: 'Type your domain (e.g. portal.yourschool.cm) in the branding settings panel.' },
+                  { title: 'Add a CNAME record', desc: 'Point it to our servers — takes 2 minutes in any domain registrar.' },
+                  { title: 'Go live instantly', desc: 'SSL certificate issued automatically. Your branded portal is live within minutes.' },
+                ].map((s, i) => (
+                  <div key={s.title} className="relative flex gap-5 pb-8 last:pb-0">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center font-bold text-xs text-white flex-shrink-0 relative z-10 border-2 border-gray-950">
+                      {i + 1}
+                    </div>
+                    <div className="pt-1">
+                      <h4 className="font-semibold text-white mb-1">{s.title}</h4>
+                      <p className="text-sm text-slate-400">{s.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Badge */}
+              <div className="mt-8 inline-flex items-center gap-2.5 bg-blue-600/15 border border-blue-500/25 rounded-2xl px-5 py-3">
+                <Zap className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                <span className="text-sm font-semibold text-blue-300">Average setup time: under 30 minutes</span>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
@@ -1089,34 +1293,127 @@ export default function HomePage() {
       {/* ── How it works ── */}
       <section className="py-24 bg-white dark:bg-gray-950">
         <div className="max-w-5xl mx-auto px-6">
+
+          {/* Header */}
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Up and running in 3 steps</h2>
-            <p className="text-gray-500 dark:text-gray-400">Get your institution live in under an hour.</p>
-          </div>
-          <div className="relative">
-            {/* Connecting line */}
-            <div className="hidden md:block absolute top-6 left-[calc(16.67%+1.5rem)] right-[calc(16.67%+1.5rem)] h-px bg-gradient-to-r from-blue-200 via-blue-400 to-blue-200" />
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                { step: '01', title: 'Sign up & customise', desc: "Create your school account, add your branding (logo, colors, domain), and configure modules in the setup wizard." },
-                { step: '02', title: 'Import your data', desc: 'Import students, staff, and courses with our bulk CSV tool or guided migration wizard — or start fresh.' },
-                { step: '03', title: 'Go live', desc: "Share login links. Students and staff onboard themselves with guided setup flows. You're live." },
-              ].map((s) => (
-                <div key={s.step} className="text-center relative">
-                  <div className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center font-bold text-sm mx-auto mb-5 shadow-lg shadow-blue-200 relative z-10">{s.step}</div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{s.title}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{s.desc}</p>
-                </div>
-              ))}
+            <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-900 rounded-full px-4 py-1.5 text-sm text-blue-700 dark:text-blue-400 font-medium mb-5">
+              <Zap className="w-3.5 h-3.5" />
+              Quick setup
             </div>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Up and running in 3 steps</h2>
+            <p className="text-gray-500 dark:text-gray-400">No IT team required. No lengthy onboarding.</p>
           </div>
-          <div className="text-center mt-12">
-            <Link href="/register" className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-2xl font-semibold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200">
+
+          {/* Steps */}
+          <div className="grid md:grid-cols-3 gap-6">
+
+            {/* Step 1 */}
+            <div className="rounded-3xl border border-blue-100 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20 p-7 flex flex-col">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center font-bold text-sm">1</div>
+                <span className="text-xs font-bold text-blue-500 uppercase tracking-widest">Set up</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Sign up &amp; customise</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-6">Add your school's logo, brand colors, custom domain, and choose which modules to enable — all in a guided wizard.</p>
+              {/* Micro-visual: branding panel */}
+              <div className="mt-auto bg-white dark:bg-gray-900 rounded-2xl border border-blue-100 dark:border-blue-900/50 p-4">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-3">Branding setup</p>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 bg-blue-700 rounded-xl flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">UB</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-800 dark:text-white">Univ. of Buea</p>
+                    <p className="text-[10px] text-gray-400">portal.ubuea.cm</p>
+                  </div>
+                  <div className="ml-auto w-5 h-5 bg-blue-600 rounded-md border-2 border-white dark:border-gray-900 shadow" title="Brand color" />
+                </div>
+                <div className="h-1.5 bg-blue-100 dark:bg-blue-900/40 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-blue-500 rounded-full w-2/3" />
+                </div>
+                <p className="text-[9px] text-gray-400 mt-1.5">Setup — 66% complete</p>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="rounded-3xl border border-blue-200 dark:border-blue-800/60 bg-blue-100/40 dark:bg-blue-900/20 p-7 flex flex-col md:mt-4">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-8 h-8 bg-blue-500 text-white rounded-xl flex items-center justify-center font-bold text-sm">2</div>
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Import</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Import your data</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-6">Upload your existing students, staff, and courses via CSV — or start fresh. Our migration wizard maps every field.</p>
+              {/* Micro-visual: import progress */}
+              <div className="mt-auto bg-white dark:bg-gray-900 rounded-2xl border border-blue-100 dark:border-blue-800/50 p-4 space-y-2.5">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Importing data</p>
+                {[
+                  { label: 'Students', count: '1,240', pct: 100 },
+                  { label: 'Staff', count: '86', pct: 100 },
+                  { label: 'Courses', count: '42', pct: 78 },
+                ].map((r) => (
+                  <div key={r.label}>
+                    <div className="flex justify-between text-[10px] mb-1">
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">{r.label}</span>
+                      <span className="text-gray-400">{r.count}</span>
+                    </div>
+                    <div className="h-1.5 bg-blue-100 dark:bg-blue-900/40 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-blue-500 rounded-full transition-all" style={{ width: `${r.pct}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="rounded-3xl border border-blue-300 dark:border-blue-700/60 bg-blue-600 p-7 flex flex-col md:mt-8">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-8 h-8 bg-white/20 text-white rounded-xl flex items-center justify-center font-bold text-sm">3</div>
+                <span className="text-xs font-bold text-blue-100 uppercase tracking-widest">Go live</span>
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">Share &amp; go live</h3>
+              <p className="text-sm text-blue-100 leading-relaxed mb-6">Share login links with students and staff. They onboard themselves with guided flows — you're live from day one.</p>
+              {/* Micro-visual: live screen */}
+              <div className="mt-auto bg-white/15 rounded-2xl border border-white/20 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse" />
+                  <p className="text-[10px] font-semibold text-white">portal.ubuea.cm is live</p>
+                </div>
+                <div className="space-y-1.5">
+                  {[
+                    { label: 'Students online', value: '340' },
+                    { label: 'Classes today', value: '12' },
+                    { label: 'Fees collected', value: '$8,400' },
+                  ].map((s) => (
+                    <div key={s.label} className="flex justify-between text-[10px]">
+                      <span className="text-blue-200">{s.label}</span>
+                      <span className="font-bold text-white">{s.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* CTA */}
+          <div className="text-center mt-14">
+            <Link href="/register" className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-2xl font-semibold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 dark:shadow-blue-900/40">
               Start your free trial <ArrowRight className="w-4 h-4" />
             </Link>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-3 flex items-center justify-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-blue-400" />
+              Most schools are live within 1 hour
+            </p>
           </div>
+
         </div>
       </section>
+
+      {/* ── Switching ── */}
+      <SwitchingSection />
+
+      {/* ── ROI Calculator ── */}
+      <ROICalculator />
 
       {/* ── Pricing ── */}
       <section id="pricing" className="py-24 bg-gray-50 dark:bg-gray-900">
@@ -1250,16 +1547,125 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Demo Booking ── */}
+      <BookingSection />
+
       {/* ── FAQ ── */}
       <section className="py-24 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-2xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Frequently asked questions</h2>
-            <p className="text-gray-500 dark:text-gray-400">Everything you need to know before getting started.</p>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid lg:grid-cols-[380px_1fr] gap-16 items-start">
+
+            {/* Left — sticky anchor */}
+            <div className="lg:sticky lg:top-24">
+              <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-900 rounded-full px-4 py-1.5 text-sm text-blue-700 dark:text-blue-400 font-medium mb-5">
+                <MessageSquare className="w-3.5 h-3.5" />
+                FAQ
+              </div>
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
+                Frequently<br />asked questions
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-8">
+                Everything you need to know before getting started. Can't find your answer?
+              </p>
+
+              {/* Escape hatches */}
+              <div className="space-y-3 mb-10">
+                <a
+                  href="/contact"
+                  className="flex items-center gap-3 w-full px-4 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl hover:border-blue-300 dark:hover:border-blue-700 transition-colors group"
+                >
+                  <div className="w-8 h-8 bg-blue-50 dark:bg-blue-950 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Chat with our team</p>
+                    <p className="text-xs text-gray-400">We reply within a few minutes</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-blue-500 transition-colors" />
+                </a>
+                <a
+                  href="/docs"
+                  className="flex items-center gap-3 w-full px-4 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl hover:border-blue-300 dark:hover:border-blue-700 transition-colors group"
+                >
+                  <div className="w-8 h-8 bg-blue-50 dark:bg-blue-950 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Browse documentation</p>
+                    <p className="text-xs text-gray-400">Guides, API reference, tutorials</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-blue-500 transition-colors" />
+                </a>
+              </div>
+
+              {/* Trust micro-badges */}
+              <div className="space-y-2.5">
+                {[
+                  { icon: Shield, text: 'Data fully isolated per school' },
+                  { icon: CheckCircle, text: '14-day free trial, no credit card' },
+                  { icon: Globe, text: 'Cancel or export data anytime' },
+                ].map(({ icon: Icon, text }) => (
+                  <div key={text} className="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400">
+                    <Icon className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    {text}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — grouped accordion */}
+            <div className="space-y-10">
+
+              {/* Group 1 */}
+              <div>
+                <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Data &amp; Security</p>
+                <div>
+                  {faqs.slice(0, 1).map((faq) => <FaqItem key={faq.q} q={faq.q} a={faq.a} />)}
+                </div>
+              </div>
+
+              {/* Group 2 */}
+              <div>
+                <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Payments &amp; Setup</p>
+                <div>
+                  {faqs.slice(1, 4).map((faq) => <FaqItem key={faq.q} q={faq.q} a={faq.a} />)}
+                </div>
+              </div>
+
+              {/* Group 3 */}
+              <div>
+                <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Product &amp; Plans</p>
+                <div>
+                  {faqs.slice(4).map((faq) => <FaqItem key={faq.q} q={faq.q} a={faq.a} />)}
+                </div>
+              </div>
+
+              {/* Bottom strip */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-gray-200 dark:border-gray-800">
+                <div>
+                  <p className="font-semibold text-gray-900 dark:text-white text-sm">Still have questions?</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Our team is happy to walk you through anything.</p>
+                </div>
+                <Link
+                  href="/contact"
+                  className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm transition-colors"
+                >
+                  Talk to us <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+
+            </div>
           </div>
-          <div className="space-y-3">
-            {faqs.map((faq) => <FaqItem key={faq.q} q={faq.q} a={faq.a} />)}
-          </div>
+        </div>
+      </section>
+
+      {/* ── Newsletter ── */}
+      <section className="py-16 bg-blue-600">
+        <div className="max-w-2xl mx-auto px-6 text-center">
+          <p className="text-xs font-bold text-blue-200 uppercase tracking-widest mb-3">Stay in the loop</p>
+          <h2 className="text-2xl font-bold text-white mb-2">EdTech insights for African school leaders</h2>
+          <p className="text-blue-100 text-sm mb-8">Product updates, best practices, and case studies — delivered monthly. No spam.</p>
+          <NewsletterForm />
         </div>
       </section>
 

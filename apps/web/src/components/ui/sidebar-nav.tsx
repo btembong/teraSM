@@ -8,8 +8,10 @@ import {
   Calendar, MessageSquare, User, DollarSign, FileText, Video, Megaphone,
   Users, CalendarDays, Building, Wrench, Bot, Vote, Briefcase, LogOut,
   GraduationCap, Library, UserCog, Smile, Settings, CalendarOff, UserPlus,
-  ChevronRight, Building2, CreditCard, Award, CalendarRange,
+  ChevronRight, Building2, CreditCard, Award, Shield, AlarmClock, Bell, Trophy,
+  BookMarked, MessageCircle, Clock,
 } from 'lucide-react'
+import { AnnouncementBadge } from '@/components/ui/unread-badge'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -60,89 +62,160 @@ const PORTAL_LABEL: Record<Portal, string> = {
 
 const ADMIN_NAV: NavEntry[] = [
   { type: 'leaf', href: '/admin', label: 'Dashboard', Icon: LayoutDashboard },
+
+  // ── Academic Structure ──────────────────────────────────────────────────────
   {
-    type: 'group', label: 'Academics', Icon: GraduationCap,
+    type: 'group', label: 'Academic Structure', Icon: GraduationCap,
     items: [
-      { type: 'leaf', href: '/admin/academics', label: 'Overview', Icon: LayoutDashboard },
-      { type: 'leaf', href: '/admin/academics/departments', label: 'Departments', Icon: Building2 },
-      { type: 'leaf', href: '/admin/academics/courses', label: 'Courses', Icon: BookOpen },
-      { type: 'leaf', href: '/admin/academics/years', label: 'Academic Years', Icon: CalendarRange },
+      { type: 'leaf', href: '/admin/academics',              label: 'Overview',     Icon: LayoutDashboard },
+      { type: 'leaf', href: '/admin/academics/structure',    label: 'Structure',    Icon: Building2 },
+      { type: 'leaf', href: '/admin/academics/departments',  label: 'Departments',  Icon: Building },
+      { type: 'leaf', href: '/admin/academics/programs',     label: 'Programs',     Icon: BookMarked },
+      { type: 'leaf', href: '/admin/academics/courses',      label: 'Courses',      Icon: BookOpen },
+      { type: 'leaf', href: '/admin/academics/offerings',    label: 'Offerings',    Icon: ClipboardList },
+      { type: 'leaf', href: '/admin/academics/rooms',        label: 'Rooms',        Icon: Building },
+      { type: 'leaf', href: '/admin/academics/calendar',     label: 'Calendar',     Icon: CalendarDays },
+      { type: 'leaf', href: '/admin/academics/grading',      label: 'Grading',      Icon: BarChart2 },
     ],
   },
-  { type: 'leaf', href: '/admin/lms', label: 'LMS', Icon: Library },
+
+  // ── Admissions ──────────────────────────────────────────────────────────────
+  { type: 'leaf', href: '/admin/admissions', label: 'Admissions', Icon: ClipboardList },
+
+  // ── Student Management ──────────────────────────────────────────────────────
+  {
+    type: 'group', label: 'Student Management', Icon: Users,
+    items: [
+      { type: 'leaf', href: '/admin/students',                 label: 'All Students',   Icon: Users },
+      { type: 'leaf', href: '/admin/students/enrollments',     label: 'Enrollments',    Icon: ClipboardCheck },
+      { type: 'leaf', href: '/admin/students/progression',     label: 'Progression',    Icon: BarChart2 },
+      { type: 'leaf', href: '/admin/students/grades',          label: 'Grades',         Icon: Award },
+      { type: 'leaf', href: '/admin/students/transcripts',     label: 'Transcripts',    Icon: FileText },
+      { type: 'leaf', href: '/admin/invites',                  label: 'Invitations',    Icon: UserPlus },
+    ],
+  },
+
+  // ── Learning ────────────────────────────────────────────────────────────────
+  { type: 'leaf', href: '/admin/lms',          label: 'LMS',          Icon: Library },
   { type: 'leaf', href: '/admin/live-classes', label: 'Live Classes', Icon: Video },
+  { type: 'leaf', href: '/admin/exams',        label: 'Exams',        Icon: CalendarOff },
+
+  // ── Finance ─────────────────────────────────────────────────────────────────
   {
     type: 'group', label: 'Finance', Icon: DollarSign,
     items: [
-      { type: 'leaf', href: '/admin/finance', label: 'Overview', Icon: LayoutDashboard },
-      { type: 'leaf', href: '/admin/finance/fees', label: 'Fee Structures', Icon: CreditCard },
-      { type: 'leaf', href: '/admin/finance/invoices', label: 'Invoices', Icon: FileText },
-      { type: 'leaf', href: '/admin/finance/scholarships', label: 'Scholarships', Icon: Award },
+      { type: 'leaf', href: '/admin/finance',                  label: 'Overview',       Icon: LayoutDashboard },
+      { type: 'leaf', href: '/admin/finance/fees',             label: 'Fee Structures', Icon: CreditCard },
+      { type: 'leaf', href: '/admin/finance/invoices',         label: 'Invoices',       Icon: FileText },
+      { type: 'leaf', href: '/admin/finance/scholarships',     label: 'Scholarships',   Icon: Award },
+      { type: 'leaf', href: '/admin/finance/manual-payments',  label: 'Bank Proofs',    Icon: FileText },
     ],
   },
+
+  // ── HR ──────────────────────────────────────────────────────────────────────
   {
     type: 'group', label: 'HR', Icon: UserCog,
     items: [
-      { type: 'leaf', href: '/admin/hr', label: 'Overview', Icon: LayoutDashboard },
-      { type: 'leaf', href: '/admin/hr/employees', label: 'Employees', Icon: Users },
-      { type: 'leaf', href: '/admin/hr/leave', label: 'Leave Requests', Icon: CalendarOff },
-      { type: 'leaf', href: '/admin/hr/payroll', label: 'Payroll', Icon: CreditCard },
+      { type: 'leaf', href: '/admin/hr',            label: 'Overview',       Icon: LayoutDashboard },
+      { type: 'leaf', href: '/admin/hr/employees',  label: 'Employees',      Icon: Users },
+      { type: 'leaf', href: '/admin/hr/leave',      label: 'Leave Requests', Icon: CalendarOff },
+      { type: 'leaf', href: '/admin/hr/payroll',    label: 'Payroll',        Icon: CreditCard },
     ],
   },
-  { type: 'leaf', href: '/admin/announcements', label: 'Announcements', Icon: Megaphone },
-  { type: 'leaf', href: '/admin/student-life', label: 'Student Life', Icon: Smile },
-  { type: 'leaf', href: '/admin/elections', label: 'Elections', Icon: Vote },
-  { type: 'leaf', href: '/admin/career', label: 'Career Center', Icon: Briefcase },
-  { type: 'leaf', href: '/admin/ai', label: 'AI & Intelligence', Icon: Bot },
+
+  // ── Other ───────────────────────────────────────────────────────────────────
+  { type: 'leaf', href: '/admin/campuses',      label: 'Campuses',       Icon: Building2 },
+  { type: 'leaf', href: '/admin/announcements', label: 'Announcements',  Icon: Megaphone },
+  { type: 'leaf', href: '/admin/student-life',  label: 'Student Life',   Icon: Smile },
+  { type: 'leaf', href: '/admin/elections',     label: 'Elections',      Icon: Vote },
+  { type: 'leaf', href: '/admin/career',        label: 'Career Center',  Icon: Briefcase },
+  { type: 'leaf', href: '/admin/ai',            label: 'AI & Intelligence', Icon: Bot },
+  { type: 'leaf', href: '/admin/analytics',     label: 'Analytics',      Icon: BarChart2 },
+  { type: 'leaf', href: '/admin/settings',      label: 'Settings',       Icon: Settings },
+]
+
+// ─── Grouped nav for student portal ──────────────────────────────────────────
+
+const STUDENT_NAV: NavEntry[] = [
+  { type: 'leaf', href: '/student', label: 'Dashboard', Icon: LayoutDashboard },
   {
-    type: 'group', label: 'Users & Access', Icon: Users,
+    type: 'group', label: 'Academics', Icon: GraduationCap,
     items: [
-      { type: 'leaf', href: '/admin/students', label: 'All Users', Icon: Users },
-      { type: 'leaf', href: '/admin/invites', label: 'Invitations', Icon: UserPlus },
+      { type: 'leaf', href: '/student/registration', label: 'Registration', Icon: ClipboardList },
+      { type: 'leaf', href: '/student/registration/my-courses', label: 'My Courses', Icon: BookOpen },
+      { type: 'leaf', href: '/student/attendance', label: 'Attendance', Icon: ClipboardCheck },
+      { type: 'leaf', href: '/student/grades',     label: 'Grades',     Icon: BarChart2 },
+      { type: 'leaf', href: '/student/transcript', label: 'Transcript', Icon: FileText },
+      { type: 'leaf', href: '/student/graduation', label: 'Graduation', Icon: GraduationCap },
+      { type: 'leaf', href: '/student/timetable', label: 'Timetable', Icon: Calendar },
+      { type: 'leaf', href: '/student/deadlines', label: 'Deadlines', Icon: AlarmClock },
     ],
   },
-  { type: 'leaf', href: '/admin/reports', label: 'Reports', Icon: BarChart2 },
-  { type: 'leaf', href: '/admin/settings', label: 'Settings', Icon: Settings },
+  {
+    type: 'group', label: 'Learning', Icon: BookMarked,
+    items: [
+      { type: 'leaf', href: '/student/courses', label: 'Course Materials', Icon: BookOpen },
+      { type: 'leaf', href: '/student/assignments', label: 'Assignments', Icon: ClipboardCheck },
+      { type: 'leaf', href: '/student/live-classes', label: 'Live Classes', Icon: Video },
+      { type: 'leaf', href: '/student/leaderboard', label: 'Leaderboard', Icon: Trophy },
+      { type: 'leaf', href: '/student/ai', label: 'AI Assistant', Icon: Bot },
+    ],
+  },
+  {
+    type: 'group', label: 'Finance', Icon: DollarSign,
+    items: [
+      { type: 'leaf', href: '/student/fees', label: 'Fees & Payments', Icon: CreditCard },
+    ],
+  },
+  {
+    type: 'group', label: 'Communication', Icon: MessageCircle,
+    items: [
+      { type: 'leaf', href: '/student/announcements', label: 'Announcements', Icon: Megaphone },
+      { type: 'leaf', href: '/student/messages', label: 'Messages', Icon: MessageSquare },
+      { type: 'leaf', href: '/student/notifications', label: 'Notifications', Icon: Bell },
+    ],
+  },
+  {
+    type: 'group', label: 'Campus Life', Icon: Smile,
+    items: [
+      { type: 'leaf', href: '/student/office-hours', label: 'Office Hours', Icon: Clock },
+      { type: 'leaf', href: '/student/clubs', label: 'Clubs & Societies', Icon: Users },
+      { type: 'leaf', href: '/student/events', label: 'Campus Events', Icon: CalendarDays },
+      { type: 'leaf', href: '/student/hostel', label: 'Hostel', Icon: Building },
+      { type: 'leaf', href: '/student/maintenance', label: 'Maintenance', Icon: Wrench },
+      { type: 'leaf', href: '/student/elections', label: 'Elections', Icon: Vote },
+      { type: 'leaf', href: '/student/career', label: 'Career Center', Icon: Briefcase },
+      { type: 'leaf', href: '/student/library', label: 'Library', Icon: Library },
+      { type: 'leaf', href: '/student/counseling', label: 'Counseling', Icon: GraduationCap },
+    ],
+  },
+  {
+    type: 'group', label: 'More', Icon: User,
+    items: [
+      { type: 'leaf', href: '/student/achievements', label: 'Achievements', Icon: Award },
+      { type: 'leaf', href: '/student/id-card', label: 'Student ID', Icon: Shield },
+      { type: 'leaf', href: '/student/profile', label: 'Profile', Icon: User },
+    ],
+  },
 ]
 
 // ─── Flat nav for other portals ───────────────────────────────────────────────
 
-const FLAT_NAV: Record<Exclude<Portal, 'admin'>, NavLeaf[]> = {
-  student: [
-    { type: 'leaf', href: '/student', label: 'Dashboard', Icon: LayoutDashboard },
-    { type: 'leaf', href: '/student/courses', label: 'My Courses', Icon: BookOpen },
-    { type: 'leaf', href: '/student/assignments', label: 'Assignments', Icon: ClipboardCheck },
-    { type: 'leaf', href: '/student/live-classes', label: 'Live Classes', Icon: Video },
-    { type: 'leaf', href: '/student/announcements', label: 'Announcements', Icon: Megaphone },
-    { type: 'leaf', href: '/student/messages', label: 'Messages', Icon: MessageSquare },
-    { type: 'leaf', href: '/student/attendance', label: 'Attendance', Icon: ClipboardList },
-    { type: 'leaf', href: '/student/grades', label: 'Grades', Icon: BarChart2 },
-    { type: 'leaf', href: '/student/transcript', label: 'Transcript', Icon: FileText },
-    { type: 'leaf', href: '/student/fees', label: 'Fees & Payments', Icon: DollarSign },
-    { type: 'leaf', href: '/student/timetable', label: 'Timetable', Icon: Calendar },
-    { type: 'leaf', href: '/student/clubs', label: 'Clubs', Icon: Users },
-    { type: 'leaf', href: '/student/events', label: 'Events', Icon: CalendarDays },
-    { type: 'leaf', href: '/student/hostel', label: 'Hostel', Icon: Building },
-    { type: 'leaf', href: '/student/maintenance', label: 'Maintenance', Icon: Wrench },
-    { type: 'leaf', href: '/student/elections', label: 'Elections', Icon: Vote },
-    { type: 'leaf', href: '/student/career', label: 'Career Center', Icon: Briefcase },
-    { type: 'leaf', href: '/student/library', label: 'Library', Icon: Library },
-    { type: 'leaf', href: '/student/ai', label: 'AI Assistant', Icon: Bot },
-    { type: 'leaf', href: '/student/profile', label: 'Profile', Icon: User },
-  ],
+const FLAT_NAV: Record<Exclude<Portal, 'admin' | 'student'>, NavLeaf[]> = {
   staff: [
-    { type: 'leaf', href: '/staff', label: 'Dashboard', Icon: LayoutDashboard },
-    { type: 'leaf', href: '/staff/courses', label: 'My Courses', Icon: BookOpen },
-    { type: 'leaf', href: '/staff/lms', label: 'LMS', Icon: Library },
+    { type: 'leaf', href: '/staff',             label: 'Dashboard',    Icon: LayoutDashboard },
+    { type: 'leaf', href: '/staff/courses',      label: 'My Courses',   Icon: BookOpen },
+    { type: 'leaf', href: '/staff/timetable',    label: 'Timetable',    Icon: Calendar },
     { type: 'leaf', href: '/staff/live-classes', label: 'Live Classes', Icon: Video },
-    { type: 'leaf', href: '/staff/leave', label: 'Leave', Icon: CalendarOff },
-    { type: 'leaf', href: '/staff/messages', label: 'Messages', Icon: MessageSquare },
-    { type: 'leaf', href: '/staff/announcements', label: 'Announcements', Icon: Megaphone },
-    { type: 'leaf', href: '/staff/attendance', label: 'Attendance', Icon: ClipboardList },
-    { type: 'leaf', href: '/staff/grades', label: 'Grades', Icon: BarChart2 },
-    { type: 'leaf', href: '/staff/assignments', label: 'Assignments', Icon: ClipboardCheck },
-    { type: 'leaf', href: '/staff/timetable', label: 'Timetable', Icon: Calendar },
-    { type: 'leaf', href: '/staff/profile', label: 'Profile', Icon: User },
+    { type: 'leaf', href: '/staff/attendance',   label: 'Attendance',   Icon: ClipboardList },
+    { type: 'leaf', href: '/staff/analytics',    label: 'Analytics',    Icon: BarChart2 },
+    { type: 'leaf', href: '/staff/office-hours', label: 'Office Hours', Icon: Clock },
+    { type: 'leaf', href: '/staff/invigilation', label: 'Invigilation', Icon: ClipboardCheck },
+    { type: 'leaf', href: '/staff/announcements',label: 'Announcements',Icon: Megaphone },
+    { type: 'leaf', href: '/staff/messages',     label: 'Messages',     Icon: MessageSquare },
+    { type: 'leaf', href: '/staff/payslips',     label: 'Payslips',     Icon: DollarSign },
+    { type: 'leaf', href: '/staff/leave',        label: 'Leave',        Icon: CalendarOff },
+    { type: 'leaf', href: '/staff/profile',      label: 'Profile',      Icon: User },
   ],
   parent: [
     { type: 'leaf', href: '/parent', label: 'Dashboard', Icon: LayoutDashboard },
@@ -176,6 +249,8 @@ function LeafLink({ item, active, a, indent = false }: {
   a: typeof ACCENT['blue']
   indent?: boolean
 }) {
+  const showAnnouncementBadge = item.href === '/student/announcements'
+
   return (
     <Link
       href={item.href}
@@ -190,7 +265,8 @@ function LeafLink({ item, active, a, indent = false }: {
         <item.Icon className={`w-4 h-4 flex-shrink-0 transition-colors ${active ? a.icon : 'text-gray-400 group-hover:text-gray-600'}`} />
       )}
       <span className="flex-1 truncate">{item.label}</span>
-      {!indent && active && <span className={`w-1.5 h-1.5 rounded-full ${a.dot} flex-shrink-0`} />}
+      {showAnnouncementBadge && <AnnouncementBadge />}
+      {!indent && !showAnnouncementBadge && active && <span className={`w-1.5 h-1.5 rounded-full ${a.dot} flex-shrink-0`} />}
     </Link>
   )
 }
@@ -254,23 +330,25 @@ export function SidebarNav({ portal, accentColor = 'blue', user, schoolName, sch
     ? schoolName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : 'SM'
 
-  // Track which groups are open (admin only)
+  const activeNav: NavEntry[] =
+    portal === 'admin' ? ADMIN_NAV :
+    portal === 'student' ? STUDENT_NAV :
+    (FLAT_NAV[portal as keyof typeof FLAT_NAV] ?? [])
+
+  // Track which groups are open
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const initial = new Set<string>()
-    if (portal === 'admin') {
-      ADMIN_NAV.forEach(entry => {
-        if (entry.type === 'group' && groupHasActive(entry, pathname)) {
-          initial.add(entry.label)
-        }
-      })
-    }
+    activeNav.forEach(entry => {
+      if (entry.type === 'group' && groupHasActive(entry, pathname)) {
+        initial.add(entry.label)
+      }
+    })
     return initial
   })
 
   // Auto-expand group when navigating to a child page
   useEffect(() => {
-    if (portal !== 'admin') return
-    ADMIN_NAV.forEach(entry => {
+    activeNav.forEach(entry => {
       if (entry.type === 'group' && groupHasActive(entry, pathname)) {
         setOpenGroups(prev => {
           if (prev.has(entry.label)) return prev
@@ -280,7 +358,7 @@ export function SidebarNav({ portal, accentColor = 'blue', user, schoolName, sch
         })
       }
     })
-  }, [pathname, portal])
+  }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function toggle(label: string) {
     setOpenGroups(prev => {
@@ -310,35 +388,25 @@ export function SidebarNav({ portal, accentColor = 'blue', user, schoolName, sch
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-        {portal === 'admin'
-          ? ADMIN_NAV.map(entry =>
-              entry.type === 'leaf' ? (
-                <LeafLink
-                  key={entry.href}
-                  item={entry}
-                  active={isLeafActive(entry.href, pathname)}
-                  a={a}
-                />
-              ) : (
-                <GroupItem
-                  key={entry.label}
-                  group={entry}
-                  pathname={pathname}
-                  a={a}
-                  open={openGroups.has(entry.label)}
-                  onToggle={() => toggle(entry.label)}
-                />
-              )
-            )
-          : (FLAT_NAV[portal as Exclude<Portal, 'admin'>] ?? []).map(item => (
-              <LeafLink
-                key={item.href}
-                item={item}
-                active={isLeafActive(item.href, pathname)}
-                a={a}
-              />
-            ))
-        }
+        {activeNav.map(entry =>
+          entry.type === 'leaf' ? (
+            <LeafLink
+              key={entry.href}
+              item={entry}
+              active={isLeafActive(entry.href, pathname)}
+              a={a}
+            />
+          ) : (
+            <GroupItem
+              key={entry.label}
+              group={entry}
+              pathname={pathname}
+              a={a}
+              open={openGroups.has(entry.label)}
+              onToggle={() => toggle(entry.label)}
+            />
+          )
+        )}
       </nav>
 
       {/* User footer */}
@@ -352,6 +420,13 @@ export function SidebarNav({ portal, accentColor = 'blue', user, schoolName, sch
             <p className="text-xs text-gray-400 truncate">{user.email}</p>
           </div>
         </div>
+        <Link
+          href="/account/security"
+          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors group"
+        >
+          <Shield className="w-4 h-4 flex-shrink-0 text-gray-400 group-hover:text-gray-600" />
+          Account Security
+        </Link>
         <Link
           href="/api/auth/signout"
           className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors group"

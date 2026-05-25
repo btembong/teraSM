@@ -12,7 +12,7 @@ export async function GET() {
     where: { tenantId },
     include: {
       _count: { select: { memberships: { where: { status: 'ACTIVE' } } } },
-      memberships: { where: { studentId, status: 'ACTIVE' }, select: { id: true } },
+      memberships: { where: { userId: studentId, status: 'ACTIVE' }, select: { id: true } },
     },
     orderBy: { name: 'asc' },
   })

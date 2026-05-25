@@ -2,10 +2,12 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Video, Users, Clock, CheckCircle, XCircle, Radio } from 'lucide-react'
+import { getActiveSemester } from '@/lib/active-semester'
+import { NoActiveSemester } from '@/components/ui/no-active-semester'
 
 const statusColor: Record<string, string> = {
-  SCHEDULED: 'bg-blue-50 text-blue-700',
-  LIVE: 'bg-blue-600 text-white',
+  SCHEDULED: 'bg-indigo-50 text-indigo-700',
+  LIVE: 'bg-indigo-600 text-white',
   ENDED: 'bg-gray-100 text-gray-600',
   CANCELLED: 'bg-gray-100 text-gray-400',
 }
@@ -21,6 +23,9 @@ export default async function AdminLiveClassesPage() {
   const session = await auth()
   if (!session?.user) redirect('/login')
   const tenantId = (session.user as any).tenantId
+
+  const activeSemester = await getActiveSemester(tenantId)
+  if (!activeSemester) return <NoActiveSemester feature="Live class management" />
 
   const [liveClasses, stats] = await Promise.all([
     prisma.liveClass.findMany({
@@ -47,17 +52,12 @@ export default async function AdminLiveClassesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Live Classes</h1>
-        <p className="text-gray-500">Schedule and manage live class sessions</p>
-      </div>
-
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         {[
-          { label: 'Total Sessions', value: total, color: 'text-blue-600', bg: 'bg-blue-50', icon: Video },
-          { label: 'Live Now', value: live, color: 'text-blue-600', bg: 'bg-blue-50', icon: Radio },
-          { label: 'Scheduled', value: scheduled, color: 'text-blue-600', bg: 'bg-blue-50', icon: Clock },
+          { label: 'Total Sessions', value: total, color: 'text-indigo-600', bg: 'bg-indigo-50', icon: Video },
+          { label: 'Live Now', value: live, color: 'text-indigo-600', bg: 'bg-indigo-50', icon: Radio },
+          { label: 'Scheduled', value: scheduled, color: 'text-indigo-600', bg: 'bg-indigo-50', icon: Clock },
           { label: 'Completed', value: ended, color: 'text-gray-600', bg: 'bg-gray-100', icon: CheckCircle },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-200 p-5">
@@ -84,7 +84,7 @@ export default async function AdminLiveClassesPage() {
               return (
                 <div key={lc.id} className="flex items-center justify-between px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <StatusIcon className={`w-5 h-5 ${lc.status === 'LIVE' ? 'text-blue-600 animate-pulse' : 'text-gray-400'}`} />
+                    <StatusIcon className={`w-5 h-5 ${lc.status === 'LIVE' ? 'text-indigo-600 animate-pulse' : 'text-gray-400'}`} />
                     <div>
                       <p className="font-medium text-gray-900">{lc.title}</p>
                       <p className="text-sm text-gray-500">

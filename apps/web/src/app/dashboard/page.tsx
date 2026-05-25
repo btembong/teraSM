@@ -24,6 +24,11 @@ export default async function DashboardRedirect() {
     redirect('/welcome')
   }
 
+  // First-ever login for students → show student welcome + onboarding wizard
+  if (session.user.role === 'STUDENT' && session.user.onboardingComplete === false) {
+    redirect('/student/welcome')
+  }
+
   const role = session.user.role ?? 'STUDENT'
   const destination = ROLE_REDIRECT[role] ?? '/student'
   redirect(destination)

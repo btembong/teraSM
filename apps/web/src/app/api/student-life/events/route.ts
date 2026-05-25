@@ -12,7 +12,7 @@ export async function GET() {
     where: { tenantId, endDate: { gte: new Date() } },
     include: {
       _count: { select: { rsvps: { where: { status: 'GOING' } } } },
-      rsvps: { where: { studentId }, select: { status: true } },
+      rsvps: { where: { userId: studentId }, select: { status: true } },
     },
     orderBy: { startDate: 'asc' },
   })

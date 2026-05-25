@@ -1,10 +1,18 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import Link from 'next/link'
-import { ArrowLeft, FileText, ClipboardCheck, MessageSquare, Eye, EyeOff } from 'lucide-react'
+import { FileText, Eye, EyeOff, Link2, Video, Image, FileAudio, File } from 'lucide-react'
 
-export default async function AdminLmsCourseDetailPage({
+const TYPE_META: Record<string, { label: string; color: string; Icon: any }> = {
+  PDF:      { label: 'PDF',      color: 'bg-red-50 text-red-700',    Icon: FileText },
+  VIDEO:    { label: 'Video',    color: 'bg-purple-50 text-purple-700', Icon: Video },
+  LINK:     { label: 'Link',     color: 'bg-blue-50 text-blue-700',   Icon: Link2 },
+  DOCUMENT: { label: 'Document', color: 'bg-gray-100 text-gray-700',  Icon: File },
+  IMAGE:    { label: 'Image',    color: 'bg-green-50 text-green-700', Icon: Image },
+  AUDIO:    { label: 'Audio',    color: 'bg-amber-50 text-amber-700', Icon: FileAudio },
+}
+
+export default async function CourseOfferingMaterialsPage({
   params,
 }: {
   params: Promise<{ offeringId: string }>
@@ -14,147 +22,93 @@ export default async function AdminLmsCourseDetailPage({
   if (!session?.user) redirect('/login')
   const tenantId = (session.user as any).tenantId
 
-  const [offering, contents, assignments, threads] = await Promise.all([
-    prisma.courseOffering.findUnique({
-      where: { id: offeringId },
-      include: { course: true, semester: { include: { academicYear: true } } },
-    }),
-    prisma.courseContent.findMany({
-      where: { tenantId, courseOfferingId: offeringId },
-      orderBy: { order: 'asc' },
-    }),
-    prisma.assignment.findMany({
-      where: { tenantId, courseOfferingId: offeringId },
-      include: { _count: { select: { submissions: true } } },
-      orderBy: { dueDate: 'asc' },
-    }),
-    prisma.discussionThread.findMany({
-      where: { tenantId, courseOfferingId: offeringId },
-      include: { _count: { select: { posts: true } } },
-      orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
-      take: 5,
-    }),
-  ])
+  const contents = await prisma.courseContent.findMany({
+    where: { tenantId, courseOfferingId: offeringId },
+    orderBy: { order: 'asc' },
+  })
 
-  if (!offering) redirect('/admin/lms')
-
-  const contentTypeColor: Record<string, string> = {
-    PDF: 'bg-blue-50 text-blue-700',
-    VIDEO: 'bg-blue-100 text-blue-800',
-    LINK: 'bg-blue-50 text-blue-600',
-    DOCUMENT: 'bg-gray-100 text-gray-700',
-    IMAGE: 'bg-gray-50 text-gray-600',
-    AUDIO: 'bg-gray-100 text-gray-600',
-  }
+  const published = contents.filter(c => c.isPublished).length
+  const drafts = contents.filter(c => !c.isPublished).length
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/admin/lms" className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-          <ArrowLeft className="w-4 h-4 text-gray-500" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{offering.course.title}</h1>
-          <p className="text-gray-500">
-            {offering.course.code} · {offering.semester.academicYear.name} · {offering.semester.name}
-          </p>
-        </div>
+      {/* Stats row */}
+      <div className="grid grid-cols-4 gap-4">
+        {[
+          { label: 'Total Materials', value: contents.length },
+          { label: 'Published',       value: published },
+          { label: 'Drafts',          value: drafts },
+          { label: 'Types',           value: new Set(contents.map(c => c.type)).size },
+        ].map(s => (
+          <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+            <p className="text-2xl font-bold text-gray-900">{s.value}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Course Materials */}
+      {/* Materials table */}
       <div className="bg-white rounded-2xl border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-500" />
-            <h2 className="font-semibold text-gray-900">Course Materials ({contents.length})</h2>
+            <FileText className="w-4 h-4 text-blue-500" />
+            <h2 className="font-semibold text-gray-900 text-sm">Course Materials</h2>
           </div>
+          <span className="text-xs text-gray-400">{contents.length} items</span>
         </div>
-        {contents.length === 0 ? (
-          <div className="text-center py-8 text-gray-400 text-sm">No materials uploaded yet.</div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {contents.map((c) => (
-              <div key={c.id} className="flex items-center justify-between px-6 py-3">
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${contentTypeColor[c.type] ?? 'bg-gray-100 text-gray-600'}`}>
-                    {c.type}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{c.title}</p>
-                    {c.description && <p className="text-xs text-gray-400">{c.description}</p>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {c.isPublished ? (
-                    <span className="flex items-center gap-1 text-xs text-blue-600">
-                      <Eye className="w-3 h-3" /> Published
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-xs text-gray-400">
-                      <EyeOff className="w-3 h-3" /> Draft
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Assignments */}
-      <div className="bg-white rounded-2xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-          <ClipboardCheck className="w-5 h-5 text-blue-500" />
-          <h2 className="font-semibold text-gray-900">Assignments ({assignments.length})</h2>
-        </div>
-        {assignments.length === 0 ? (
-          <div className="text-center py-8 text-gray-400 text-sm">No assignments yet.</div>
+        {contents.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <FileText className="w-8 h-8 mx-auto mb-2 opacity-40" />
+            <p className="text-sm">No materials uploaded yet.</p>
+            <p className="text-xs mt-1">Add content from the Staff or LMS admin panel.</p>
+          </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {assignments.map((a) => {
-              const isOverdue = new Date(a.dueDate) < new Date()
+          <div className="divide-y divide-gray-50">
+            {contents.map((c) => {
+              const meta = TYPE_META[c.type] ?? { label: c.type, color: 'bg-gray-100 text-gray-600', Icon: File }
+              const Icon = meta.Icon
               return (
-                <div key={a.id} className="flex items-center justify-between px-6 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{a.title}</p>
-                    <p className={`text-xs ${isOverdue ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
-                      Due {new Date(a.dueDate).toLocaleDateString()} · Max {a.maxScore} pts
-                    </p>
+                <div key={c.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-gray-50/50 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{c.title}</p>
+                      {c.description && (
+                        <p className="text-xs text-gray-400 truncate">{c.description}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span>{a._count.submissions} submissions</span>
-                    {a.isPublished ? (
-                      <span className="text-xs text-blue-600">Published</span>
+                  <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${meta.color}`}>
+                      {meta.label}
+                    </span>
+                    <span className="text-xs text-gray-300">#{c.order}</span>
+                    {c.isPublished ? (
+                      <span className="flex items-center gap-1 text-xs text-blue-600">
+                        <Eye className="w-3 h-3" /> Published
+                      </span>
                     ) : (
-                      <span className="text-xs text-gray-400">Draft</span>
+                      <span className="flex items-center gap-1 text-xs text-gray-400">
+                        <EyeOff className="w-3 h-3" /> Draft
+                      </span>
+                    )}
+                    {c.url && (
+                      <a
+                        href={c.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-500 hover:text-blue-700 underline"
+                      >
+                        Open
+                      </a>
                     )}
                   </div>
                 </div>
               )
             })}
-          </div>
-        )}
-      </div>
-
-      {/* Discussion Threads */}
-      <div className="bg-white rounded-2xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-blue-500" />
-          <h2 className="font-semibold text-gray-900">Discussions ({threads.length})</h2>
-        </div>
-        {threads.length === 0 ? (
-          <div className="text-center py-8 text-gray-400 text-sm">No discussions yet.</div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {threads.map((t) => (
-              <div key={t.id} className="flex items-center justify-between px-6 py-3">
-                <div className="flex items-center gap-2">
-                  {t.isPinned && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">Pinned</span>}
-                  <p className="text-sm font-medium text-gray-900">{t.title}</p>
-                </div>
-                <span className="text-sm text-gray-400">{t._count.posts} replies</span>
-              </div>
-            ))}
           </div>
         )}
       </div>

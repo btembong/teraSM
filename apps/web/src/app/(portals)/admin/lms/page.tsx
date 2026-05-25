@@ -3,11 +3,16 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Library, FileText, ClipboardCheck, MessageSquare, ChevronRight } from 'lucide-react'
+import { getActiveSemester } from '@/lib/active-semester'
+import { NoActiveSemester } from '@/components/ui/no-active-semester'
 
 export default async function AdminLmsPage() {
   const session = await auth()
   if (!session?.user) redirect('/login')
   const tenantId = (session.user as any).tenantId
+
+  const activeSemester = await getActiveSemester(tenantId)
+  if (!activeSemester) return <NoActiveSemester feature="LMS course management" />
 
   const [contentCount, assignmentCount, submissionCount, threadCount, offerings] =
     await Promise.all([
@@ -27,19 +32,14 @@ export default async function AdminLmsPage() {
     ])
 
   const stats = [
-    { label: 'Course Materials', value: contentCount, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Assignments', value: assignmentCount, icon: ClipboardCheck, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Pending Reviews', value: submissionCount, icon: ClipboardCheck, color: 'text-blue-500', bg: 'bg-blue-50' },
-    { label: 'Discussion Threads', value: threadCount, icon: MessageSquare, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Course Materials', value: contentCount, icon: FileText, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Assignments', value: assignmentCount, icon: ClipboardCheck, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Pending Reviews', value: submissionCount, icon: ClipboardCheck, color: 'text-indigo-500', bg: 'bg-indigo-50' },
+    { label: 'Discussion Threads', value: threadCount, icon: MessageSquare, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   ]
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Learning Management System</h1>
-        <p className="text-gray-500">Course content, assignments, and discussions</p>
-      </div>
-
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         {stats.map((s) => (

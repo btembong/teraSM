@@ -29,7 +29,7 @@ export async function GET() {
   ])
 
   const cgpa = grades.length
-    ? (grades.reduce((s, g) => s + (g.finalGrade ?? g.totalScore ?? 0), 0) / grades.length).toFixed(2)
+    ? (grades.reduce((s, g) => s + (g.totalScore ?? 0), 0) / grades.length).toFixed(2)
     : 'N/A'
 
   const enrolledCourseIds = enrollments.map((e) => e.courseOffering.courseId)
@@ -38,9 +38,9 @@ export async function GET() {
   const context = `
 Student academic context:
 - Current CGPA/average: ${cgpa}
-- Currently enrolled in: ${enrollments.map((e) => e.courseOffering.course.name).join(', ') || 'none'}
-- Recent grades: ${grades.slice(0, 5).map((g) => `${g.courseOffering.course.name}: ${g.letterGrade ?? g.totalScore ?? 'N/A'}`).join(', ') || 'none'}
-- Available courses to register: ${availableOfferings.map((o) => `${o.course.name} (${o.course.code}) - ${o.course.creditHours} credits`).join('; ') || 'none'}
+- Currently enrolled in: ${enrollments.map((e) => e.courseOffering.course.title).join(', ') || 'none'}
+- Recent grades: ${grades.slice(0, 5).map((g) => `${g.courseOffering.course.title}: ${g.letterGrade ?? g.totalScore ?? 'N/A'}`).join(', ') || 'none'}
+- Available courses to register: ${availableOfferings.map((o) => `${o.course.title} (${o.course.code}) - ${o.course.creditHours} credits`).join('; ') || 'none'}
 `
 
   const advice = await generateText(

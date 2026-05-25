@@ -12,6 +12,11 @@
     @apply bg-white text-gray-900;
   }
 
+  /* Force light color scheme — prevents browser from applying dark native widget styling */
+  :root {
+    color-scheme: light;
+  }
+
   /* shadcn/ui CSS variables — HSL format for Tailwind v3 compatibility */
   :root {
     --background: 0 0% 100%;

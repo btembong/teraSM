@@ -120,12 +120,12 @@ export default function InvitesPage() {
   const linkInvites  = invites.filter(i => i.email === null)
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-8">
+    <div className="space-y-6">
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Invitations</h1>
-        <p className="text-sm text-gray-500 mt-1">Invite staff, students, and parents to join your school on Tera SM.</p>
+        <h2 className="text-xl font-bold text-gray-900">Invitations</h2>
+        <p className="text-sm text-gray-400">Send email invites or generate shareable links for new users</p>
       </div>
 
       {/* Create invite card */}
@@ -141,7 +141,7 @@ export default function InvitesPage() {
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-colors border-b-2 -mb-px ${
                 tab === t.key
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-indigo-600 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -162,7 +162,7 @@ export default function InvitesPage() {
                   onChange={e => setEmailText(e.target.value)}
                   rows={4}
                   placeholder="john@school.edu&#10;jane@school.edu&#10;..."
-                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 />
               </div>
 
@@ -173,7 +173,7 @@ export default function InvitesPage() {
                     <select
                       value={emailRole}
                       onChange={e => setEmailRole(e.target.value as InviteRole)}
-                      className="w-full appearance-none px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pr-8"
+                      className="w-full appearance-none px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white pr-8"
                     >
                       {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
@@ -186,7 +186,7 @@ export default function InvitesPage() {
                     <select
                       value={emailExpiry}
                       onChange={e => setEmailExpiry(e.target.value)}
-                      className="w-full appearance-none px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pr-8"
+                      className="w-full appearance-none px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white pr-8"
                     >
                       <option value="3">3 days</option>
                       <option value="7">7 days</option>
@@ -199,7 +199,7 @@ export default function InvitesPage() {
               </div>
 
               {sendResult && (
-                <p className={`text-sm px-4 py-2.5 rounded-xl border ${sendResult.ok ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-900 border-gray-200 font-medium'}`}>
+                <p className={`text-sm px-4 py-2.5 rounded-xl border ${sendResult.ok ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-900 border-gray-200 font-medium'}`}>
                   {sendResult.msg}
                 </p>
               )}
@@ -207,7 +207,7 @@ export default function InvitesPage() {
               <button
                 onClick={sendEmailInvites}
                 disabled={sending || !emailText.trim()}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
               >
                 {sending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 {sending ? 'Creating invites…' : 'Create invites'}
@@ -224,7 +224,7 @@ export default function InvitesPage() {
                     <select
                       value={linkRole}
                       onChange={e => setLinkRole(e.target.value as InviteRole)}
-                      className="w-full appearance-none px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pr-8"
+                      className="w-full appearance-none px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white pr-8"
                     >
                       {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
@@ -237,7 +237,7 @@ export default function InvitesPage() {
                     <select
                       value={linkExpiry}
                       onChange={e => setLinkExpiry(e.target.value)}
-                      className="w-full appearance-none px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pr-8"
+                      className="w-full appearance-none px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white pr-8"
                     >
                       <option value="7">7 days</option>
                       <option value="14">14 days</option>
@@ -255,7 +255,7 @@ export default function InvitesPage() {
                     max={1000}
                     value={linkMaxUses}
                     onChange={e => setLinkMaxUses(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -263,7 +263,7 @@ export default function InvitesPage() {
               <button
                 onClick={generateLink}
                 disabled={generating}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
               >
                 {generating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
                 {generating ? 'Generating…' : 'Generate link'}
@@ -317,7 +317,7 @@ export default function InvitesPage() {
                           onClick={() => copyLink(inv.token, inv.id)}
                           className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                         >
-                          {copiedId === inv.id ? <Check className="w-3.5 h-3.5 text-blue-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedId === inv.id ? <Check className="w-3.5 h-3.5 text-indigo-500" /> : <Copy className="w-3.5 h-3.5" />}
                           {copiedId === inv.id ? 'Copied' : 'Copy link'}
                         </button>
                         <button
@@ -364,7 +364,7 @@ export default function InvitesPage() {
                           onClick={() => copyLink(inv.token, inv.id)}
                           className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                         >
-                          {copiedId === inv.id ? <Check className="w-3.5 h-3.5 text-blue-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedId === inv.id ? <Check className="w-3.5 h-3.5 text-indigo-500" /> : <Copy className="w-3.5 h-3.5" />}
                           {copiedId === inv.id ? 'Copied' : 'Copy link'}
                         </button>
                         <button

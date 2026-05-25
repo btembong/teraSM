@@ -16,12 +16,12 @@ export async function GET(req: Request) {
       where: {
         tenantId,
         OR: [
-          { name: { contains: q, mode: 'insensitive' } },
+          { title: { contains: q, mode: 'insensitive' } },
           { code: { contains: q, mode: 'insensitive' } },
           { description: { contains: q, mode: 'insensitive' } },
         ],
       },
-      select: { id: true, name: true, code: true, description: true },
+      select: { id: true, title: true, code: true, description: true },
       take: 5,
     }),
     prisma.announcement.findMany({
@@ -44,15 +44,15 @@ export async function GET(req: Request) {
           { description: { contains: q, mode: 'insensitive' } },
         ],
       },
-      select: { id: true, title: true, description: true, contentType: true, offeringId: true },
+      select: { id: true, title: true, description: true, type: true, courseOfferingId: true },
       take: 5,
     }),
   ])
 
   const results = [
-    ...courses.map((c) => ({ type: 'course', id: c.id, title: c.name, subtitle: c.code, href: `/student/courses` })),
+    ...courses.map((c) => ({ type: 'course', id: c.id, title: c.title, subtitle: c.code, href: `/student/courses` })),
     ...announcements.map((a) => ({ type: 'announcement', id: a.id, title: a.title, subtitle: new Date(a.createdAt).toLocaleDateString(), href: `/student/announcements` })),
-    ...content.map((c) => ({ type: 'content', id: c.id, title: c.title, subtitle: c.contentType, href: `/student/courses/${c.offeringId}` })),
+    ...content.map((c) => ({ type: 'content', id: c.id, title: c.title, subtitle: c.type, href: `/student/courses/${c.courseOfferingId}` })),
   ]
 
   return NextResponse.json({ results })

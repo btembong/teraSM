@@ -68,14 +68,11 @@ export default function AdminAnnouncementsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Announcements</h1>
-          <p className="text-gray-500">Broadcast messages to students, staff, and parents</p>
-        </div>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div />
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Announcement
@@ -92,7 +89,7 @@ export default function AdminAnnouncementsPage() {
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                 required
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Announcement title"
               />
             </div>
@@ -103,7 +100,7 @@ export default function AdminAnnouncementsPage() {
                 onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
                 required
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 placeholder="Write your announcement..."
               />
             </div>
@@ -113,7 +110,7 @@ export default function AdminAnnouncementsPage() {
                 <select
                   value={form.audience}
                   onChange={(e) => setForm((f) => ({ ...f, audience: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   {['ALL', 'STUDENTS', 'STAFF', 'TEACHERS', 'PARENTS'].map((a) => (
                     <option key={a} value={a}>{a}</option>
@@ -132,7 +129,7 @@ export default function AdminAnnouncementsPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button type="submit" disabled={saving} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
+              <button type="submit" disabled={saving} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
                 {saving ? 'Saving...' : 'Create'}
               </button>
               <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 rounded-xl text-sm font-medium transition-colors">
@@ -161,7 +158,7 @@ export default function AdminAnnouncementsPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      {a.isPinned && <Pin className="w-3.5 h-3.5 text-blue-500" />}
+                      {a.isPinned && <Pin className="w-3.5 h-3.5 text-indigo-500" />}
                       <p className="font-medium text-gray-900">{a.title}</p>
                     </div>
                     <p className="text-sm text-gray-500 line-clamp-2">{a.body}</p>
@@ -169,7 +166,7 @@ export default function AdminAnnouncementsPage() {
                       <span className={`text-xs px-2 py-0.5 rounded font-medium ${audienceColor[a.audience] ?? 'bg-gray-100 text-gray-600'}`}>
                         {a.audience}
                       </span>
-                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${a.isPublished ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${a.isPublished ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}>
                         {a.isPublished ? 'Published' : 'Draft'}
                       </span>
                       <span className="text-xs text-gray-400">{new Date(a.createdAt).toLocaleDateString()}</span>
@@ -181,7 +178,7 @@ export default function AdminAnnouncementsPage() {
                       className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                       title={a.isPublished ? 'Unpublish' : 'Publish'}
                     >
-                      {a.isPublished ? <EyeOff className="w-4 h-4 text-gray-400" /> : <Eye className="w-4 h-4 text-blue-500" />}
+                      {a.isPublished ? <EyeOff className="w-4 h-4 text-gray-400" /> : <Eye className="w-4 h-4 text-indigo-500" />}
                     </button>
                     <button onClick={() => deleteAnnouncement(a.id)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
                       <Trash2 className="w-4 h-4 text-gray-400" />

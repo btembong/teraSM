@@ -62,7 +62,8 @@ export async function POST(
       passwordHash,
       role: invite.role,
       status: 'ACTIVE',
-      onboardingComplete: true,
+      // Students go through their own onboarding wizard on first login
+      onboardingComplete: invite.role === 'STUDENT' ? false : true,
     },
   })
 

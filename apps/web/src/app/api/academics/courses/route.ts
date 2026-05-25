@@ -8,9 +8,21 @@ export async function GET(req: NextRequest) {
   const tenantId = (session.user as any).tenantId
   const departmentId = req.nextUrl.searchParams.get('departmentId') ?? undefined
 
+  const programId = req.nextUrl.searchParams.get('programId') ?? undefined
+
+  const programFilter = programId
+    ? { programCourses: { some: { programId } } }
+    : {}
+
   const courses = await prisma.course.findMany({
-    where: { tenantId, ...(departmentId ? { departmentId } : {}) },
-    include: { department: true, _count: { select: { offerings: true } } },
+    where: { tenantId, ...(departmentId ? { departmentId } : {}), ...programFilter },
+    include: {
+      department: { include: { faculty: { select: { id: true, name: true, code: true } } } },
+      _count: { select: { offerings: true } },
+      programCourses: {
+        include: { program: { select: { id: true, name: true, code: true } } },
+      },
+    },
     orderBy: { code: 'asc' },
   })
 

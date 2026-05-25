@@ -11,6 +11,7 @@ interface Scholarship {
 
 export default function ScholarshipsPage() {
   const [scholarships, setScholarships] = useState<Scholarship[]>([])
+  const [currency, setCurrency] = useState('USD')
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -20,8 +21,15 @@ export default function ScholarshipsPage() {
 
   async function load() {
     setLoading(true)
-    const res = await fetch('/api/finance/scholarships')
-    if (res.ok) setScholarships(await res.json())
+    const [schRes, settingsRes] = await Promise.all([
+      fetch('/api/finance/scholarships'),
+      fetch('/api/admin/settings'),
+    ])
+    if (schRes.ok) setScholarships(await schRes.json())
+    if (settingsRes.ok) {
+      const { tenant } = await settingsRes.json()
+      if (tenant?.currency) setCurrency(tenant.currency)
+    }
     setLoading(false)
   }
 
@@ -56,12 +64,12 @@ export default function ScholarshipsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Scholarships & Bursaries</h1>
-          <p className="text-gray-500">Manage financial aid and awards</p>
+          <h2 className="text-xl font-bold text-slate-900">Scholarships & Bursaries</h2>
+          <p className="text-sm text-slate-400 mt-0.5">Manage financial aid and awards</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Award
@@ -76,7 +84,7 @@ export default function ScholarshipsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="e.g. Academic Excellence Award"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -86,7 +94,7 @@ export default function ScholarshipsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                 <select
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
                 >
@@ -97,11 +105,11 @@ export default function ScholarshipsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fixed Amount (USD)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fixed Amount ({currency})</label>
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="Leave blank if percentage"
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
@@ -112,7 +120,7 @@ export default function ScholarshipsPage() {
                 <input
                   type="number"
                   min={0} max={100}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="Leave blank if fixed amount"
                   value={form.percentage}
                   onChange={(e) => setForm({ ...form, percentage: e.target.value })}
@@ -122,17 +130,17 @@ export default function ScholarshipsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
               <textarea
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 rows={2}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </div>
             <div className="flex gap-3">
-              <button type="submit" disabled={saving} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">
+              <button type="submit" disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-medium disabled:opacity-50 transition-colors">
                 {saving ? 'Saving...' : 'Create'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-100 transition-colors">Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)} className="text-gray-600 px-4 py-2 rounded-xl text-sm hover:bg-gray-100 transition-colors">Cancel</button>
             </div>
           </form>
         </div>

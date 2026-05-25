@@ -4,18 +4,32 @@ import { prisma } from '@/lib/prisma'
 import { SidebarNav } from '@/components/ui/sidebar-nav'
 import { ForceLight } from '@/components/layout/force-light'
 import { CommandPalette } from '@/components/ui/command-palette'
+import { AdminTopBar } from '@/components/ui/admin-top-bar'
+import { OnboardingVideo } from '@/components/ui/onboarding-video'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
   if (!session?.user) redirect('/login')
 
-  // Fetch school branding
-  const tenant = session.user.tenantId
-    ? await prisma.tenant.findUnique({
-        where:  { id: session.user.tenantId },
-        select: { name: true, logoUrl: true },
-      })
-    : null
+  const tenantId = (session.user as any).tenantId as string | undefined
+
+  const [tenant, currentSemester] = await Promise.all([
+    tenantId
+      ? prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true, logoUrl: true } })
+      : null,
+    tenantId
+      ? prisma.semester.findFirst({
+          where: { isCurrent: true, academicYear: { tenantId } },
+          select: { name: true, academicYear: { select: { name: true } } },
+        })
+      : null,
+  ])
+
+  const user = session.user as any
+  const userName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || 'Admin'
+  const semesterLabel = currentSemester
+    ? `${currentSemester.academicYear.name} · ${currentSemester.name}`
+    : undefined
 
   return (
     <ForceLight>
@@ -29,11 +43,24 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           schoolLogo={tenant?.logoUrl ?? null}
         />
       </aside>
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-6 py-6 animate-in">{children}</div>
-      </main>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <AdminTopBar
+          userName={userName}
+          userEmail={user.email ?? ''}
+          semester={semesterLabel}
+        />
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-6 py-6 animate-in">{children}</div>
+        </main>
+      </div>
     </div>
     <CommandPalette />
+    <OnboardingVideo
+      storageKey="tera_onboarding_admin"
+      title="Welcome to your Admin Panel"
+      subtitle="Quick 2-min tour to get started"
+      videoSrc={process.env.ADMIN_ONBOARDING_VIDEO_URL ?? ''}
+    />
     </ForceLight>
   )
 }

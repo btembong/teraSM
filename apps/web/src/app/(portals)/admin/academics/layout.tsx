@@ -8,16 +8,30 @@ export default async function AcademicsLayout({ children }: { children: React.Re
   const session = await auth()
   const tenantId = (session?.user as any)?.tenantId as string | undefined
 
-  const [deptCount, courseCount] = await Promise.all([
+  const [deptCount, programCount, courseCount, offeringCount, roomCount] = await Promise.all([
     tenantId ? prisma.department.count({ where: { tenantId } }) : 0,
+    tenantId ? (prisma as any).program.count({ where: { tenantId } }) : 0,
     tenantId ? prisma.course.count({ where: { tenantId } }) : 0,
+    tenantId ? prisma.courseOffering.count({ where: { tenantId } }) : 0,
+    tenantId ? prisma.room.count({ where: { tenantId } }) : 0,
   ])
 
   const tabs = [
-    { label: 'Overview',       href: '/admin/academics' },
-    { label: 'Departments',    href: '/admin/academics/departments',  badge: deptCount },
-    { label: 'Courses',        href: '/admin/academics/courses',      badge: courseCount },
-    { label: 'Academic Years', href: '/admin/academics/years' },
+    // ── Overview ───────────────────────────────────────────────────────────────
+    { label: 'Overview',    href: '/admin/academics',             icon: 'LayoutDashboard', group: 'overview' },
+    // ── Catalog ────────────────────────────────────────────────────────────────
+    { label: 'Structure',   href: '/admin/academics/structure',   icon: 'Network',         group: 'catalog' },
+    { label: 'Departments', href: '/admin/academics/departments', icon: 'Building2',       badge: deptCount,     group: 'catalog' },
+    { label: 'Programs',    href: '/admin/academics/programs',    icon: 'GraduationCap',   badge: programCount,  group: 'catalog' },
+    { label: 'Courses',     href: '/admin/academics/courses',     icon: 'BookOpen',        badge: courseCount,   group: 'catalog' },
+    // ── Scheduling ─────────────────────────────────────────────────────────────
+    { label: 'Offerings',   href: '/admin/academics/offerings',   icon: 'CalendarDays',    badge: offeringCount, group: 'scheduling' },
+    // ── Resources ──────────────────────────────────────────────────────────────
+    { label: 'Rooms',       href: '/admin/academics/rooms',       icon: 'DoorOpen',        badge: roomCount,     group: 'resources' },
+    // ── Policy ─────────────────────────────────────────────────────────────────
+    { label: 'Calendar',    href: '/admin/academics/calendar',    icon: 'CalendarRange',   group: 'policy' },
+    { label: 'Grading',     href: '/admin/academics/grading',     icon: 'Award',           group: 'policy' },
+    { label: 'Resits',      href: '/admin/academics/resits',      icon: 'RotateCcw',       group: 'policy' },
   ]
 
   return (
@@ -31,15 +45,15 @@ export default async function AcademicsLayout({ children }: { children: React.Re
         </div>
         {/* Module identity */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <GraduationCap className="w-5 h-5 text-blue-600" />
+          <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <GraduationCap className="w-5 h-5 text-indigo-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 leading-none">Academics</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Manage departments, courses, and academic calendar</p>
+            <h1 className="text-xl font-bold text-gray-900 leading-none">Academic Structure</h1>
+            <p className="text-sm text-gray-400 mt-0.5">Define your institution's catalog — faculties, programs, courses, and calendar</p>
           </div>
         </div>
-        {/* Tab bar — only serializable data */}
+        {/* Tab bar */}
         <ModuleTabs tabs={tabs} />
       </div>
       {children}
