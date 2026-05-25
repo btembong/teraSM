@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 const links = [
@@ -17,6 +19,10 @@ const links = [
 
 export function MarketingNav() {
   const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+
+  const isActive = (href: string) =>
+    pathname === href || (href !== '/' && pathname.startsWith(href))
 
   return (
     <nav className="sticky top-0 z-50 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
@@ -28,14 +34,28 @@ export function MarketingNav() {
           <span className="font-bold text-gray-900 dark:text-white text-lg">Tera<span className="text-blue-600">SM</span></span>
         </Link>
 
-        {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-400">
-          {links.map((l) => (
-            <Link key={l.label} href={l.href} className="hover:text-gray-900 dark:hover:text-white transition-colors">
-              {l.label}
-            </Link>
-          ))}
-          <Link href="/login" className="hover:text-gray-900 dark:hover:text-white transition-colors">Sign In</Link>
+        {/* Desktop nav — sliding active pill */}
+        <div className="hidden md:flex items-center gap-1 text-sm font-medium">
+          {links.map((l) => {
+            const active = isActive(l.href)
+            return (
+              <Link key={l.label} href={l.href} className="relative px-3 py-1.5 rounded-lg transition-colors">
+                {active && (
+                  <motion.span
+                    layoutId="nav-active-pill"
+                    className="absolute inset-0 bg-blue-50 dark:bg-blue-950/60 rounded-lg"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}
+                  />
+                )}
+                <span className={`relative transition-colors ${active ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+                  {l.label}
+                </span>
+              </Link>
+            )
+          })}
+          <Link href="/login" className="px-3 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors rounded-lg">
+            Sign In
+          </Link>
         </div>
 
         <div className="flex items-center gap-2">
@@ -52,20 +72,44 @@ export function MarketingNav() {
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {open && (
-        <div className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 px-6 py-4 space-y-3">
-          {links.map((l) => (
-            <Link key={l.label} href={l.href} onClick={() => setOpen(false)} className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 py-1">
-              {l.label}
-            </Link>
-          ))}
-          <Link href="/login" onClick={() => setOpen(false)} className="block text-sm font-medium text-gray-700 dark:text-gray-300 py-1">Sign In</Link>
-          <div className="pt-2">
-            <ThemeToggle />
-          </div>
-        </div>
-      )}
+      {/* Mobile menu — animated slide down */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: 'easeInOut' }}
+            className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 px-6 overflow-hidden"
+          >
+            <div className="py-4 space-y-1">
+              {links.map((l) => {
+                const active = isActive(l.href)
+                return (
+                  <Link
+                    key={l.label}
+                    href={l.href}
+                    onClick={() => setOpen(false)}
+                    className={`block text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
+                      active
+                        ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                        : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    }`}
+                  >
+                    {l.label}
+                  </Link>
+                )
+              })}
+              <Link href="/login" onClick={() => setOpen(false)} className="block text-sm font-medium text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                Sign In
+              </Link>
+              <div className="pt-2 px-3">
+                <ThemeToggle />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { Check, X, Zap, ArrowRight, ChevronDown, Server, Database, Globe, Mail, Video, Brain, MessageSquare, Shield } from 'lucide-react'
 
 /* ─── Tiers ──────────────────────────────────────── */
@@ -194,17 +195,25 @@ export default function PricingPage() {
           One platform for your entire institution. Pick the plan that fits — upgrade anytime as you grow.
         </p>
 
-        {/* Billing toggle */}
-        <div className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+        {/* Billing toggle — animated sliding pill */}
+        <div className="inline-flex items-center bg-gray-100 dark:bg-gray-800 rounded-xl p-1 relative">
+          {/* sliding background pill */}
+          <motion.div
+            layout
+            layoutId="billing-toggle-pill"
+            className="absolute top-1 bottom-1 bg-white dark:bg-gray-700 rounded-lg shadow"
+            style={{ width: annual ? '50%' : '42%', left: annual ? '50%' : '2%' }}
+            transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}
+          />
           <button
             onClick={() => setAnnual(false)}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${!annual ? 'bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+            className={`relative z-10 px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${!annual ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
           >
             Monthly
           </button>
           <button
             onClick={() => setAnnual(true)}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${annual ? 'bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+            className={`relative z-10 px-5 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${annual ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
           >
             Annual
             <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-bold">Save 15%</span>
@@ -220,17 +229,25 @@ export default function PricingPage() {
             const isPopular = tier.popular
 
             return (
-              <div
+              <motion.div
                 key={tier.name}
-                className={`relative rounded-3xl p-6 flex flex-col transition-all ${
+                whileHover={{ y: isPopular ? -16 : -5, scale: isPopular ? 1 : 1.01 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className={`relative rounded-3xl p-6 flex flex-col ${
                   isPopular
-                    ? 'bg-blue-600 shadow-2xl shadow-blue-200 dark:shadow-blue-900/50 -translate-y-3 ring-0'
-                    : 'bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                    ? 'bg-blue-600 shadow-2xl shadow-blue-200 dark:shadow-blue-900/50 -translate-y-3'
+                    : 'bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-xl hover:shadow-gray-100 dark:hover:shadow-gray-900'
                 }`}
               >
                 {isPopular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="bg-white text-blue-600 text-xs font-bold px-3 py-1 rounded-full shadow-md">Most Popular</span>
+                    <motion.span
+                      animate={{ scale: [1, 1.07, 1] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                      className="inline-block bg-white text-blue-600 text-xs font-bold px-3 py-1 rounded-full shadow-md"
+                    >
+                      Most Popular
+                    </motion.span>
                   </div>
                 )}
 
@@ -280,7 +297,7 @@ export default function PricingPage() {
                 >
                   {tier.cta} <ArrowRight className="w-4 h-4" />
                 </Link>
-              </div>
+              </motion.div>
             )
           })}
         </div>

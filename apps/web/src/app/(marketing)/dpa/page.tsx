@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { LegalToc } from '@/components/ui/legal-toc'
 
 export const metadata: Metadata = {
   title: 'Data Processing Agreement — Tera SM',
@@ -220,14 +221,7 @@ export default function DpaPage() {
         <div className="flex gap-12">
           <aside className="hidden lg:block w-56 flex-shrink-0">
             <div className="sticky top-24">
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Contents</p>
-              <nav className="space-y-1">
-                {sections.map(s => (
-                  <a key={s.id} href={`#${s.id}`} className="block text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 py-0.5 transition-colors leading-snug">
-                    {s.title}
-                  </a>
-                ))}
-              </nav>
+              <LegalToc sections={sections} />
               <div className="mt-6 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50">
                 <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-2">Need a signed copy?</p>
                 <a href="mailto:dpa@terasms.com" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">dpa@terasms.com</a>

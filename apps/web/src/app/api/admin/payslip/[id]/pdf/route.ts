@@ -80,7 +80,7 @@ export async function GET(_req: Request, { params }: Params) {
 
     <div class="employee-info">
       <div class="row"><span class="label">Employee</span><span class="val">${user?.firstName} ${user?.lastName}</span></div>
-      <div class="row"><span class="label">Employee No.</span><span class="val">${emp.employeeId ?? '-'}</span></div>
+      <div class="row"><span class="label">Employee No.</span><span class="val">${emp.employeeNo ?? '-'}</span></div>
       <div class="row"><span class="label">Department</span><span class="val">${emp.departmentId ?? '-'}</span></div>
       <div class="row"><span class="label">Position</span><span class="val">${emp.position ?? '-'}</span></div>
       <div class="row"><span class="label">Pay Period</span><span class="val">${period.name}</span></div>

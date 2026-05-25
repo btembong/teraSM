@@ -1,5 +1,16 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { LegalToc } from '@/components/ui/legal-toc'
+
+const SECTIONS = [
+  { id: 'what', title: '1. What Are Cookies?' },
+  { id: 'how', title: '2. How We Use Cookies' },
+  { id: 'cookies-used', title: '3. Cookies We Use' },
+  { id: 'manage', title: '4. Managing Preferences' },
+  { id: 'third-party', title: '5. Third-Party Cookies' },
+  { id: 'changes', title: '6. Changes' },
+  { id: 'contact', title: '7. Contact' },
+]
 
 export const metadata: Metadata = {
   title: 'Cookie Policy — Tera SM',
@@ -75,7 +86,12 @@ export default function CookiesPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-12 space-y-12">
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <div className="flex gap-12">
+          <aside className="hidden lg:block w-56 flex-shrink-0">
+            <LegalToc sections={SECTIONS} />
+          </aside>
+          <div className="flex-1 min-w-0 space-y-12">
         {/* Summary */}
         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 rounded-xl p-5 text-sm text-blue-800 dark:text-blue-300">
           <strong>Summary:</strong> We use essential cookies to run the platform and optional analytics cookies on our marketing website. You can manage analytics cookies through the banner on our site. The platform itself uses only session cookies required for login.
@@ -212,7 +228,9 @@ export default function CookiesPage() {
             ))}
           </div>
         </div>
+        </div>
       </div>
     </div>
+  </div>
   )
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { LegalToc } from '@/components/ui/legal-toc'
 
 export const metadata: Metadata = {
   title: 'Terms of Service — Tera SM',
@@ -174,16 +175,7 @@ export default function TermsPage() {
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="flex gap-12">
           <aside className="hidden lg:block w-56 flex-shrink-0">
-            <div className="sticky top-24">
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Contents</p>
-              <nav className="space-y-1">
-                {sections.map(s => (
-                  <a key={s.id} href={`#${s.id}`} className="block text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 py-0.5 transition-colors leading-snug">
-                    {s.title}
-                  </a>
-                ))}
-              </nav>
-            </div>
+            <LegalToc sections={sections} />
           </aside>
 
           <div className="flex-1 min-w-0">

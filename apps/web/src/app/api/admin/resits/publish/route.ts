@@ -25,8 +25,10 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = prisma as any
 
-  const resits = await prisma.resitAttempt.findMany({
+  const resits = await db.resitAttempt.findMany({
     where: { id: { in: resitIds }, tenantId, status: 'SUBMITTED' },
     include: {
       grade: {
@@ -46,17 +48,17 @@ export async function POST(req: NextRequest) {
   }
 
   // Publish each resit
-  await prisma.resitAttempt.updateMany({
+  await db.resitAttempt.updateMany({
     where: { id: { in: resitIds }, tenantId, status: 'SUBMITTED' },
     data:  { status: 'PUBLISHED', publishedAt: now },
   })
 
   // Recalculate CGPA for affected students
-  const affectedStudents = [...new Set(resits.map(r => r.studentId))]
+  const affectedStudents: string[] = [...new Set<string>(resits.map((r: any) => r.studentId))]
 
   for (const studentId of affectedStudents) {
     // All published regular grades for this student
-    const regularGrades = await prisma.grade.findMany({
+    const regularGrades = await db.grade.findMany({
       where: { tenantId, studentId, status: 'PUBLISHED' },
       include: {
         courseOffering: { include: { course: { select: { creditHours: true } } } },
@@ -90,9 +92,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const cgpa         = calculateCGPA(gradeData)
+    const { cgpa } = calculateCGPA(gradeData)
     const totalCredits = [...creditedOfferingIds].reduce((sum, offeringId) => {
-      const g = regularGrades.find(x => x.courseOfferingId === offeringId)
+      const g = regularGrades.find((x: any) => x.courseOfferingId === offeringId)
       return sum + (g?.courseOffering.course.creditHours ?? 0)
     }, 0)
 

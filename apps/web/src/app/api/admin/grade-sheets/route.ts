@@ -120,8 +120,7 @@ export async function POST(req: NextRequest) {
       gradePoint:  g.gradePoint ?? 0,
       creditHours: g.courseOffering.course.creditHours,
     }))
-    const cgpa         = calculateCGPA(gradeData)
-    const totalCredits = gradeData.reduce((s, g) => s + g.creditHours, 0)
+    const { cgpa, totalCredits } = calculateCGPA(gradeData)
 
     await prisma.studentProfile.updateMany({
       where: { userId: studentId, tenantId },

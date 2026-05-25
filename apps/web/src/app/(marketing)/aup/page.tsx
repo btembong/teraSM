@@ -1,5 +1,16 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { LegalToc } from '@/components/ui/legal-toc'
+
+const SECTIONS = [
+  { id: 'purpose', title: '1. Purpose' },
+  { id: 'principles', title: '2. General Principles' },
+  { id: 'prohibited', title: '3. Prohibited Conduct' },
+  { id: 'content', title: '4. Content Standards' },
+  { id: 'reporting', title: '5. Reporting Violations' },
+  { id: 'enforcement', title: '6. Enforcement' },
+  { id: 'changes', title: '7. Changes' },
+]
 
 export const metadata: Metadata = {
   title: 'Acceptable Use Policy — Tera SM',
@@ -83,7 +94,12 @@ export default function AupPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-12 space-y-12">
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <div className="flex gap-12">
+          <aside className="hidden lg:block w-56 flex-shrink-0">
+            <LegalToc sections={SECTIONS} />
+          </aside>
+          <div className="flex-1 min-w-0 space-y-12">
         {/* Summary */}
         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 rounded-xl p-5 text-sm text-blue-800 dark:text-blue-300">
           <strong>Summary:</strong> Use Tera SM responsibly and within the law. Do not upload harmful content, attempt to breach security, misuse other users' data, or facilitate academic dishonesty. Violations may result in immediate account suspension.
@@ -234,7 +250,9 @@ export default function AupPage() {
             ))}
           </div>
         </div>
+        </div>
       </div>
     </div>
+  </div>
   )
 }

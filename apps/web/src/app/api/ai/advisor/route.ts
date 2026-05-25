@@ -22,7 +22,7 @@ export async function GET() {
       take: 20,
     }),
     prisma.courseOffering.findMany({
-      where: { tenantId, status: 'ACTIVE' },
+      where: { tenantId },
       include: { course: true, semester: true },
       take: 50,
     }),

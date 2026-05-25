@@ -9,7 +9,7 @@ export async function GET() {
   const tenantId = (session.user as any).tenantId
 
   const requests = await prisma.maintenanceRequest.findMany({
-    where: { tenantId, reportedById: studentId },
+    where: { tenantId, submittedBy: studentId },
     orderBy: { createdAt: 'desc' },
   })
   return NextResponse.json(requests)
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const request = await prisma.maintenanceRequest.create({
     data: {
       tenantId,
-      reportedById: studentId,
+      submittedBy: studentId,
       title,
       description,
       location: location || null,

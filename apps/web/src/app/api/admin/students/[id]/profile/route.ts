@@ -4,11 +4,11 @@ import { prisma } from '@/lib/prisma'
 
 // PATCH /api/admin/students/[id]/profile
 // Updates academic placement: programme, level, admission year, expected grad year, transfer credits, CGPA override
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { id } = params
+  const { id } = await params
   const body = await req.json()
 
   // Confirm student belongs to this tenant

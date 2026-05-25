@@ -70,7 +70,7 @@ export async function GET() {
     },
   })
 
-  const enrolledOfferingIds = new Set(myEnrollments.map(e => e.courseOfferingId))
+  const enrolledOfferingIds = new Set(myEnrollments.map((e: any) => e.courseOfferingId))
 
   // ── All available offerings not yet enrolled in ────────────────────────────
   const allOfferings = await (prisma as any).courseOffering.findMany({
@@ -131,7 +131,7 @@ export async function GET() {
       programCode: profile.program?.code ?? null,
       level:       profile.level,
     } : null,
-    enrolled:  myEnrollments.map(e => toOffering(e.courseOffering, e.status)),
-    available: allOfferings.map(o => toOffering(o)),
+    enrolled:  myEnrollments.map((e: any) => toOffering(e.courseOffering, e.status)),
+    available: allOfferings.map((o: any) => toOffering(o)),
   })
 }

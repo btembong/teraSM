@@ -8,6 +8,8 @@ import {
   ClipboardList, Calendar, Vote, Library, Briefcase, Building2,
 } from 'lucide-react'
 import { StickyNav } from './sticky-nav'
+import { AnimatedHeroIcon } from './animated-hero-icon'
+import { AnimatedCapabilities } from './animated-capabilities'
 
 // ─── Icon map ─────────────────────────────────────────────────────────────────
 
@@ -1950,10 +1952,10 @@ export default async function FeatureDeepDivePage({ params }: { params: Promise<
           </Link>
 
           <div className="flex items-start gap-8">
-            {/* Module icon */}
-            <div className="hidden md:flex w-20 h-20 rounded-3xl bg-white/15 border border-white/20 items-center justify-center flex-shrink-0">
+            {/* Module icon — floats */}
+            <AnimatedHeroIcon>
               <Icon className="w-10 h-10 text-white" />
-            </div>
+            </AnimatedHeroIcon>
 
             <div className="flex-1">
               {/* Plan badge */}
@@ -2010,23 +2012,7 @@ export default async function FeatureDeepDivePage({ params }: { params: Promise<
               Everything included in the {mod.title} module — grouped by function.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            {mod.capabilityGroups.map(group => (
-              <div key={group.heading}>
-                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-600 mb-4">
-                  {group.heading}
-                </h3>
-                <ul className="space-y-3">
-                  {group.items.map(item => (
-                    <li key={item} className="flex items-start gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          <AnimatedCapabilities groups={mod.capabilityGroups} />
         </div>
       </section>
 
