@@ -5,12 +5,15 @@ import {
   ArrowRight, ArrowLeft, CheckCircle2, Users, GraduationCap, Shield,
   CreditCard, BookOpen, Video, UserCog, Brain, BarChart2,
   MessageSquare, Heart, Globe, ChevronDown, Check, Minus,
+  ClipboardList, Calendar, Vote, Library, Briefcase, Building2,
 } from 'lucide-react'
 import { StickyNav } from './sticky-nav'
 
 // ─── Icon map ─────────────────────────────────────────────────────────────────
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  auth:             Shield,
+  admissions:       ClipboardList,
   academics:        GraduationCap,
   finance:          CreditCard,
   lms:              BookOpen,
@@ -21,6 +24,11 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   communication:    MessageSquare,
   'student-portal': Users,
   'parent-portal':  Heart,
+  'student-life':   Calendar,
+  elections:        Vote,
+  library:          Library,
+  career:           Briefcase,
+  operations:       Building2,
   security:         Shield,
   infrastructure:   Globe,
 }
@@ -28,8 +36,9 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 // ─── Module order (for Next module nav) ──────────────────────────────────────
 
 const MODULE_ORDER = [
-  'academics', 'finance', 'lms', 'live-classes', 'hr', 'ai',
-  'analytics', 'communication', 'student-portal', 'parent-portal',
+  'auth', 'admissions', 'academics', 'finance', 'lms', 'live-classes',
+  'hr', 'ai', 'analytics', 'communication', 'student-portal', 'parent-portal',
+  'student-life', 'elections', 'library', 'career', 'operations',
   'security', 'infrastructure',
 ]
 
@@ -61,6 +70,216 @@ interface Module {
 // ─── Module data ──────────────────────────────────────────────────────────────
 
 const MODULES: Record<string, Module> = {
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  auth: {
+    title: 'Onboarding & Authentication',
+    tagline: 'Secure, seamless access for every role — from first login to full setup.',
+    description: 'Gmail SSO, email/password login, 2FA for staff and admin, multi-step onboarding wizard with progress bar, and RBAC with granular permissions.',
+    color: 'from-slate-600 to-slate-800',
+    ctaColor: 'from-slate-700 to-slate-900',
+    badge: 'Identity & Access',
+    plan: 'All Plans',
+    planColor: 'bg-slate-600',
+    metrics: [
+      { value: '< 30s', label: 'Average login time' },
+      { value: '2FA', label: 'Multi-factor auth' },
+      { value: '9', label: 'User roles supported' },
+    ],
+    capabilityGroups: [
+      {
+        heading: 'Authentication',
+        items: [
+          'Gmail / Google OAuth SSO login',
+          'Email + password credentials login',
+          'Two-factor authentication (2FA) for staff and admin',
+          'Institutional SSO via Google or Microsoft',
+          'Secure session management with refresh tokens',
+          'IP whitelisting for admin portal access',
+        ],
+      },
+      {
+        heading: 'Onboarding',
+        items: [
+          'Multi-step profile setup wizard with progress bar',
+          'Document upload (ID, photos) on first login',
+          'Acceptance letter download after admission',
+          'Welcome video from Dean/Principal (auto-plays first login)',
+          'Onboarding checklist showing % completion',
+          'Personalized dashboard populated on first login',
+        ],
+      },
+      {
+        heading: 'Access Control',
+        items: [
+          'Role-based access control (RBAC) with granular permissions',
+          'Custom roles and permission sets per school',
+          'Per-module feature flags per subscription tier',
+          'Audit log of all login and access events',
+          'Admin-initiated password reset and account lock',
+          'Auto-logout after inactivity timeout',
+        ],
+      },
+    ],
+    howItWorks: [
+      { step: '01', title: 'Sign in', desc: 'Users log in with Google SSO or email/password — no separate app install required.' },
+      { step: '02', title: 'Verify identity', desc: 'Staff and admins complete 2FA via authenticator app or SMS code.' },
+      { step: '03', title: 'Complete onboarding', desc: 'New users follow a guided wizard: upload documents, set profile, select courses.' },
+      { step: '04', title: 'Access your portal', desc: 'Role-based redirect sends each user to their correct portal with the right permissions.' },
+    ],
+    testimonial: {
+      quote: 'Our staff were up and running in minutes. The Google SSO meant zero friction — they just clicked and were in.',
+      author: 'Kwame Asante',
+      role: 'IT Administrator',
+      school: 'Accra Business College',
+      country: 'Ghana',
+      metric: '100% SSO adoption in first week',
+    },
+    forStudent: [
+      'Sign in with existing Google account — no new password needed',
+      'Guided onboarding checklist after first login',
+      'Upload ID and photo documents during setup',
+      'Welcome video from your Dean on first login',
+    ],
+    forTeacher: [
+      'Two-factor authentication for account security',
+      'Access teaching tools immediately after login',
+      'Institutional SSO works with existing school email',
+      'Audit trail of your own login activity',
+    ],
+    forAdmin: [
+      'Assign roles and permissions per user or group',
+      'Configure 2FA requirements per role',
+      'IP whitelist admin access for extra security',
+      'View full login and access audit logs',
+    ],
+    planFeatures: [
+      { feature: 'Email + password login',     starter: true,         pro: true,         enterprise: true,      university: true },
+      { feature: 'Gmail SSO',                  starter: true,         pro: true,         enterprise: true,      university: true },
+      { feature: '2FA (staff & admin)',         starter: true,         pro: true,         enterprise: true,      university: true },
+      { feature: 'Onboarding wizard',          starter: true,         pro: true,         enterprise: true,      university: true },
+      { feature: 'RBAC permissions',           starter: 'Basic',      pro: 'Advanced',   enterprise: 'Custom',  university: 'Custom' },
+      { feature: 'Institutional SSO',          starter: false,        pro: false,        enterprise: true,      university: true },
+      { feature: 'IP whitelisting',            starter: false,        pro: false,        enterprise: true,      university: true },
+      { feature: 'Audit log retention',        starter: '30 days',    pro: '90 days',    enterprise: '1 year',  university: 'Unlimited' },
+    ],
+    faq: [
+      { q: 'Can students sign in with their personal Gmail?', a: 'Yes — any Google account works for students. You can optionally restrict login to your school domain for staff and admins.' },
+      { q: 'Is 2FA mandatory?', a: 'You choose which roles require 2FA. We recommend enforcing it for admin and finance roles by default.' },
+      { q: 'What happens if a student forgets their password?', a: 'A self-service "Forgot password" flow sends a secure reset link to their registered email.' },
+      { q: 'Can I migrate existing user accounts?', a: 'Yes — we support bulk CSV import of existing users. Imported users receive a welcome email to set up their credentials.' },
+    ],
+    related: [
+      { slug: 'security', title: 'Security', desc: 'RBAC, audit trail, GDPR compliance' },
+      { slug: 'student-portal', title: 'Student Portal', desc: 'Post-login student experience' },
+      { slug: 'admissions', title: 'Admissions', desc: 'Application and registration workflow' },
+    ],
+  },
+
+  // ── Admissions ────────────────────────────────────────────────────────────
+  admissions: {
+    title: 'Admissions & Registration',
+    tagline: 'From first application to enrolled student — fully digital, zero paperwork.',
+    description: 'Online application portal, application tracking, admission letter generation, course registration with prerequisite validation, clash detection, and waitlists.',
+    color: 'from-blue-600 to-blue-800',
+    ctaColor: 'from-blue-700 to-blue-900',
+    badge: 'Admissions',
+    plan: 'Starter',
+    planColor: 'bg-blue-600',
+    metrics: [
+      { value: '100%', label: 'Digital application process' },
+      { value: '< 5 min', label: 'Application form completion' },
+      { value: 'Auto', label: 'Clash detection on registration' },
+    ],
+    capabilityGroups: [
+      {
+        heading: 'Online Applications',
+        items: [
+          'Public-facing application portal for prospective students',
+          'Multi-step application form with document upload (ID, photos, certificates)',
+          'Application status tracking (submitted → under review → accepted/rejected)',
+          'Automated acknowledgement email on submission',
+          'Document verification workflow for registrar review',
+          'Admission letter generation as downloadable PDF',
+        ],
+      },
+      {
+        heading: 'Course Registration',
+        items: [
+          'Browse course catalog with filters (department, level, semester, credits, time slot)',
+          'Seat availability display per course section',
+          'Section and time slot selection during registration',
+          'Prerequisite validation (blocks registration if requirements unmet)',
+          'Clash detection with warnings before confirming registration',
+          'Add/drop period management with deadline enforcement',
+        ],
+      },
+      {
+        heading: 'Waitlists & Credit Transfer',
+        items: [
+          'Waitlist enrollment when a course section is full',
+          'Automatic notification when a waitlist spot opens',
+          'Credit transfer management from other institutions',
+          'Fee clearance gate (registration blocked until payment cleared)',
+          'Registration confirmation PDF download',
+          'Registrar override and manual enrollment tools',
+        ],
+      },
+    ],
+    howItWorks: [
+      { step: '01', title: 'Apply online', desc: 'Prospective students fill in the application form and upload required documents from any device.' },
+      { step: '02', title: 'Review & admit', desc: 'Registrar reviews documents, updates status, and generates the admission letter with one click.' },
+      { step: '03', title: 'Pay & register', desc: 'Student pays fees online then accesses course registration — prerequisite and clash checks happen automatically.' },
+      { step: '04', title: 'Get confirmation', desc: 'Registration confirmation PDF is generated and the student is fully enrolled with timetable and portal access.' },
+    ],
+    testimonial: {
+      quote: 'We eliminated our entire paper-based application process. Applications went up 40% because students could apply from their phones.',
+      author: 'Dr. Amara Diallo',
+      role: 'Registrar',
+      school: 'West African University',
+      country: 'Senegal',
+      metric: '40% increase in applications',
+    },
+    forStudent: [
+      'Apply from any device — no printing or in-person visits',
+      'Track your application status in real time',
+      'Download your admission letter as a PDF',
+      'Register for courses with clash and prerequisite checks',
+    ],
+    forTeacher: [
+      'View your class roster as enrollment happens',
+      'See seat availability for your course sections',
+      'Receive notification when your class fills or waitlist opens',
+    ],
+    forAdmin: [
+      'Manage applications and update status with one click',
+      'Generate admission letters in bulk',
+      'Set add/drop deadlines and prerequisite rules',
+      'View enrollment numbers and waitlists per course',
+    ],
+    planFeatures: [
+      { feature: 'Online application portal',     starter: true,   pro: true,   enterprise: true,   university: true },
+      { feature: 'Application status tracking',   starter: true,   pro: true,   enterprise: true,   university: true },
+      { feature: 'Admission letter PDF',          starter: true,   pro: true,   enterprise: true,   university: true },
+      { feature: 'Course registration',           starter: true,   pro: true,   enterprise: true,   university: true },
+      { feature: 'Clash + prerequisite checks',   starter: true,   pro: true,   enterprise: true,   university: true },
+      { feature: 'Waitlist management',           starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Credit transfer management',    starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Document verification workflow',starter: false,  pro: true,   enterprise: true,   university: true },
+    ],
+    faq: [
+      { q: 'Can students apply without creating an account first?', a: 'Yes — the application portal is public-facing. An account is only created upon acceptance.' },
+      { q: 'How does clash detection work?', a: 'When a student selects a course, the system compares it against already-registered slots and flags any time conflicts before confirming.' },
+      { q: 'Can the registrar manually enroll a student in a full course?', a: 'Yes — admins have an override option to manually add a student to any course regardless of seat availability.' },
+      { q: 'Is course registration gated by fee payment?', a: 'Yes — the fee clearance gate is configurable. You can require full payment, partial payment, or waive it per student.' },
+    ],
+    related: [
+      { slug: 'academics', title: 'Academics', desc: 'Timetable, attendance, and grading' },
+      { slug: 'finance', title: 'Finance', desc: 'Fee clearance and payment integration' },
+      { slug: 'auth', title: 'Authentication', desc: 'Student login and onboarding flow' },
+    ],
+  },
+
 
   academics: {
     title: 'Academics',
@@ -1204,6 +1423,465 @@ const MODULES: Record<string, Module> = {
       { slug: 'analytics', title: 'Analytics', desc: 'Data export and audit logs' },
     ],
   },
+
+  // ── Student Life ──────────────────────────────────────────────────────────
+  'student-life': {
+    title: 'Student Life',
+    tagline: 'Beyond the classroom — the full campus experience, digitised.',
+    description: 'Clubs & societies, sports teams, hostel allocation, maintenance requests, cafeteria & meal plans, campus events, and mental health booking — all in one platform.',
+    color: 'from-rose-500 to-rose-700',
+    ctaColor: 'from-rose-600 to-rose-800',
+    badge: 'Student Life',
+    plan: 'Pro',
+    planColor: 'bg-rose-600',
+    metrics: [
+      { value: '10+', label: 'Student life modules' },
+      { value: '1-click', label: 'Event RSVP' },
+      { value: 'Anon', label: 'Counseling option' },
+    ],
+    capabilityGroups: [
+      {
+        heading: 'Clubs & Sports',
+        items: [
+          'Clubs and societies discovery and membership management',
+          'Create, join, and manage club activities and posts',
+          'Sports team management (squads, fixtures, scores)',
+          'Club officer roles and permissions',
+          'Event creation linked to club membership',
+        ],
+      },
+      {
+        heading: 'Campus Services',
+        items: [
+          'Hostel and dormitory allocation with roommate management',
+          'Maintenance request system (report and track issues)',
+          'Cafeteria and meal plan management (purchase plans, daily menus)',
+          'Campus event management with RSVP and reminders',
+          'Visitor management (log, badge, and track campus visitors)',
+          'Lost and found board',
+        ],
+      },
+      {
+        heading: 'Wellbeing',
+        items: [
+          'Mental health and counseling appointment booking',
+          'Anonymity option for counseling sessions',
+          'Health center visit records and sick note access',
+          'Gamification (XP points, attendance streaks, badges, leaderboards)',
+          'Peer support community forum',
+        ],
+      },
+    ],
+    howItWorks: [
+      { step: '01', title: 'Discover', desc: 'Students browse clubs, events, and campus services from their portal dashboard.' },
+      { step: '02', title: 'Join & RSVP', desc: 'One-click club membership and event RSVP with automatic calendar reminders.' },
+      { step: '03', title: 'Participate', desc: 'Earn XP points, badges, and streaks for attendance, participation, and achievements.' },
+      { step: '04', title: 'Get support', desc: 'Book counseling, report maintenance issues, or check meal plans — all in the same portal.' },
+    ],
+    forStudent: [
+      'Discover and join clubs and societies with one click',
+      'RSVP to campus events and get reminders',
+      'Book mental health counseling with anonymity option',
+      'Earn XP points and badges for campus engagement',
+    ],
+    forAdmin: [
+      'Manage hostel allocation and room assignments',
+      'Track and resolve maintenance requests',
+      'Create campus events and manage RSVPs',
+      'Monitor club activity and membership counts',
+    ],
+    planFeatures: [
+      { feature: 'Clubs & societies',          starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Sports team management',     starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Hostel allocation',          starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Maintenance requests',       starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Cafeteria & meal plans',     starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Campus event management',    starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Counseling booking',         starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Gamification & leaderboard', starter: false,  pro: false,  enterprise: true,   university: true },
+    ],
+    faq: [
+      { q: 'Is the counseling booking truly anonymous?', a: 'Students can book under a pseudonym. Counselors see only the booking slot — name is hidden unless the student chooses to reveal it.' },
+      { q: 'Can clubs post announcements?', a: 'Yes — club officers can post activity updates visible to members. Posts can include files, images, and event links.' },
+      { q: 'How does hostel allocation work?', a: 'Admins configure rooms and capacity. Students apply for hostel placement; the system assigns rooms and notifies students of their allocation.' },
+      { q: 'Are gamification points linked to grades?', a: 'No — XP points are separate from academic records. They reward engagement (attendance, events, clubs) not academic performance.' },
+    ],
+    related: [
+      { slug: 'student-portal', title: 'Student Portal', desc: 'Main student dashboard and portal' },
+      { slug: 'communication', title: 'Communication', desc: 'Club chats and campus announcements' },
+      { slug: 'analytics', title: 'Analytics', desc: 'Engagement and participation metrics' },
+    ],
+  },
+
+  // ── Elections ─────────────────────────────────────────────────────────────
+  elections: {
+    title: 'Elections & Governance',
+    tagline: 'Fair, transparent, and tamper-proof student elections — fully digital.',
+    description: 'Student government elections, verified one-person-one-vote, live result tallying, polls & surveys, formal petition system, and SRC portal.',
+    color: 'from-orange-500 to-orange-700',
+    ctaColor: 'from-orange-600 to-orange-800',
+    badge: 'Governance',
+    plan: 'Pro',
+    planColor: 'bg-orange-600',
+    metrics: [
+      { value: '1-vote', label: 'Per verified student' },
+      { value: 'Live', label: 'Real-time result tallying' },
+      { value: '100%', label: 'Audit trail on all votes' },
+    ],
+    capabilityGroups: [
+      {
+        heading: 'Elections',
+        items: [
+          'Student government election management',
+          'Candidate registration and vetting workflow',
+          'Verified one-person-one-vote system (linked to student ID)',
+          'Live result tallying and publication dashboard',
+          'Voting window with configurable open/close times',
+          'Full audit trail of all votes cast (anonymous but verifiable)',
+        ],
+      },
+      {
+        heading: 'Polls & Petitions',
+        items: [
+          'Polls and surveys for any user group (students, staff, parents)',
+          'Multiple question types (single choice, multiple choice, rating)',
+          'Anonymous poll option',
+          'Formal petition system with signature thresholds',
+          'Petition status tracking (open, threshold reached, responded)',
+          'Admin response and resolution workflow',
+        ],
+      },
+      {
+        heading: 'SRC Portal',
+        items: [
+          'Student senate / SRC operations space',
+          'Meeting minutes and resolution publishing',
+          'Budget request and approval workflow',
+          'SRC announcement channel (broadcast to all students)',
+          'Project and initiative tracking board',
+        ],
+      },
+    ],
+    howItWorks: [
+      { step: '01', title: 'Set up election', desc: 'Admin creates election, sets voting window, and opens candidate registration.' },
+      { step: '02', title: 'Register candidates', desc: 'Candidates submit profiles for vetting; approved candidates appear on the ballot.' },
+      { step: '03', title: 'Students vote', desc: 'Verified students cast their vote — one per person, tracked anonymously with full audit.' },
+      { step: '04', title: 'Results go live', desc: 'Results tally in real time and are published automatically when the voting window closes.' },
+    ],
+    forStudent: [
+      'Vote in student elections from your portal with one click',
+      'View live results as they are tallied',
+      'Sign petitions and track their status',
+      'Follow SRC announcements and resolutions',
+    ],
+    forAdmin: [
+      'Create and manage election campaigns and voting windows',
+      'Vet and approve candidates before ballots open',
+      'Run polls and surveys targeting any user group',
+      'Respond to petitions that reach their threshold',
+    ],
+    planFeatures: [
+      { feature: 'Elections & voting',         starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Candidate vetting workflow',  starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Live result tallying',        starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Polls & surveys',             starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Petition system',             starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'SRC portal',                  starter: false,  pro: false,  enterprise: true,   university: true },
+      { feature: 'Anonymous voting audit',       starter: false,  pro: true,   enterprise: true,   university: true },
+    ],
+    faq: [
+      { q: 'How is one-person-one-vote enforced?', a: 'Each vote is cryptographically linked to the student\'s verified account. The system rejects duplicate submissions while keeping vote choices anonymous.' },
+      { q: 'Can the admin see who voted for whom?', a: 'No — vote choices are anonymous. The audit trail only records that a given student voted, not which candidate they chose.' },
+      { q: 'Can polls be sent to specific groups?', a: 'Yes — you can target polls to any subset of users (e.g., final-year students only, a specific department, all parents).' },
+      { q: 'What happens when a petition reaches its threshold?', a: 'Admin receives an alert and the petition is flagged as "Threshold reached." A formal response workflow is triggered requiring acknowledgement within a set window.' },
+    ],
+    related: [
+      { slug: 'student-life', title: 'Student Life', desc: 'Clubs, events, and campus engagement' },
+      { slug: 'communication', title: 'Communication', desc: 'SRC announcements and broadcasts' },
+      { slug: 'analytics', title: 'Analytics', desc: 'Participation and turnout reporting' },
+    ],
+  },
+
+  // ── Library ───────────────────────────────────────────────────────────────
+  library: {
+    title: 'Digital Library',
+    tagline: 'Every book, journal, and paper your institution needs — accessible from anywhere.',
+    description: 'E-library catalog, digital borrowing with due dates, research paper repository, JSTOR and Google Scholar integration, and per-course reading lists.',
+    color: 'from-amber-500 to-amber-700',
+    ctaColor: 'from-amber-600 to-amber-800',
+    badge: 'Digital Library',
+    plan: 'Pro',
+    planColor: 'bg-amber-600',
+    metrics: [
+      { value: '24/7', label: 'Digital access' },
+      { value: 'Auto', label: 'Due date reminders' },
+      { value: 'Instant', label: 'Search across full catalog' },
+    ],
+    capabilityGroups: [
+      {
+        heading: 'Catalog & Borrowing',
+        items: [
+          'E-library with full book and journal catalog',
+          'Digital borrowing with configurable loan periods',
+          'Due date tracking with automated return reminders',
+          'Physical copy reservation with pickup notification',
+          'Book availability display (copies available, on loan)',
+          'Borrowing history per student',
+        ],
+      },
+      {
+        heading: 'Research & Resources',
+        items: [
+          'Research paper repository (upload, index, search)',
+          'External database integration (JSTOR, Google Scholar links)',
+          'Per-course reading lists linked by lecturers',
+          'Citation generator (APA, MLA, Chicago)',
+          'Highlighted annotations saved per user',
+          'Full-text search across uploaded documents',
+        ],
+      },
+      {
+        heading: 'Administration',
+        items: [
+          'Librarian dashboard for catalog management',
+          'Overdue tracking and fine calculation',
+          'Bulk import catalog from ISBN or CSV',
+          'Usage analytics (most-borrowed, most-searched)',
+          'Digital resource access control per subscription tier',
+        ],
+      },
+    ],
+    howItWorks: [
+      { step: '01', title: 'Search the catalog', desc: 'Students search for books, journals, or papers by title, author, ISBN, or keyword.' },
+      { step: '02', title: 'Borrow digitally', desc: 'Click to borrow — digital books open instantly, physical copies are reserved for pickup.' },
+      { step: '03', title: 'Read & annotate', desc: 'Read in-browser with personal annotation and highlighting saved to their account.' },
+      { step: '04', title: 'Return on time', desc: 'Automated reminders prevent overdue returns. Renewals can be done online without visiting the library.' },
+    ],
+    forStudent: [
+      'Access the full library catalog from your phone or laptop',
+      'Borrow digital books instantly — no waiting in line',
+      'Find reading lists for each of your courses',
+      'Get auto-reminders before your loans are due',
+    ],
+    forTeacher: [
+      'Build required reading lists linked directly to your courses',
+      'Upload research papers and resources for students',
+      'See which resources students are engaging with most',
+    ],
+    forAdmin: [
+      'Manage the full catalog from a librarian dashboard',
+      'Track overdue loans and calculate fines automatically',
+      'Import catalog records in bulk via ISBN or CSV',
+      'View usage analytics across the library',
+    ],
+    planFeatures: [
+      { feature: 'E-library catalog',            starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Digital borrowing',            starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Due date reminders',           starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Per-course reading lists',     starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Research paper repository',    starter: false,  pro: false,  enterprise: true,   university: true },
+      { feature: 'External DB links (JSTOR)',    starter: false,  pro: false,  enterprise: true,   university: true },
+      { feature: 'Citation generator',           starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Library analytics',            starter: false,  pro: false,  enterprise: true,   university: true },
+    ],
+    faq: [
+      { q: 'Can students access the library off-campus?', a: 'Yes — the digital library is accessible from any device with internet. Physical reservation status is also visible online.' },
+      { q: 'How are overdue fines handled?', a: 'The system auto-calculates fines based on your configured rate per day. Fines can be linked to the student\'s fee account for settlement.' },
+      { q: 'Can lecturers add external links to reading lists?', a: 'Yes — reading lists can include uploaded PDFs, external URLs (JSTOR, Google Scholar), and catalog items.' },
+      { q: 'Is there a limit on digital borrowing slots?', a: 'You can configure a maximum number of simultaneous loans per student. The default is 5 items.' },
+    ],
+    related: [
+      { slug: 'lms', title: 'LMS', desc: 'Course content and assignments' },
+      { slug: 'academics', title: 'Academics', desc: 'Course catalog and semester management' },
+      { slug: 'student-portal', title: 'Student Portal', desc: 'Student-facing resource access' },
+    ],
+  },
+
+  // ── Career ────────────────────────────────────────────────────────────────
+  career: {
+    title: 'Career & Alumni',
+    tagline: 'From student to professional — job board, internships, and alumni network in one platform.',
+    description: 'Job board, internship management, CV builder, career counselor booking, employer partner profiles, campus recruitment events, and alumni mentorship network.',
+    color: 'from-yellow-500 to-yellow-700',
+    ctaColor: 'from-yellow-600 to-yellow-800',
+    badge: 'Career Center',
+    plan: 'Enterprise',
+    planColor: 'bg-yellow-600',
+    metrics: [
+      { value: 'Live', label: 'Job board updates' },
+      { value: '1-page', label: 'CV builder output' },
+      { value: 'Alumni', label: 'Mentorship network' },
+    ],
+    capabilityGroups: [
+      {
+        heading: 'Jobs & Internships',
+        items: [
+          'Job board with employer postings and student applications',
+          'Internship management (placement tracking, supervisor feedback, completion certificates)',
+          'Application tracking per student (applied, shortlisted, offered)',
+          'Employer partner profiles and company pages',
+          'Campus recruitment event calendar',
+          'Automated job match notifications based on student major',
+        ],
+      },
+      {
+        heading: 'Career Development',
+        items: [
+          'CV / resume builder with professional templates',
+          'Career counselor appointment booking',
+          'Interview preparation resources and mock interview guides',
+          'Skills assessment and gap analysis tools',
+          'Internship and placement certificate generation',
+          'Career goal tracking and milestone logging',
+        ],
+      },
+      {
+        heading: 'Alumni Network',
+        items: [
+          'Graduate profiles and alumni directory',
+          'Mentorship matching (alumni mentor → current student)',
+          'Alumni giving and donations portal',
+          'Networking events and reunion management',
+          'Alumni job referral programme',
+          'Graduation cohort tracking and outcome reporting',
+        ],
+      },
+    ],
+    howItWorks: [
+      { step: '01', title: 'Build your profile', desc: 'Students create a CV using the builder and complete their career profile with goals and skills.' },
+      { step: '02', title: 'Explore opportunities', desc: 'Browse the job board and internship listings filtered by field, location, or employer.' },
+      { step: '03', title: 'Apply & track', desc: 'One-click applications with status tracking from applied through to offer received.' },
+      { step: '04', title: 'Connect with alumni', desc: 'Match with alumni mentors in your field for guidance, referrals, and networking.' },
+    ],
+    forStudent: [
+      'Build a professional CV with a guided template builder',
+      'Apply to jobs and internships directly from your portal',
+      'Track application status in real time',
+      'Connect with alumni mentors in your career field',
+    ],
+    forAdmin: [
+      'Manage employer partner relationships and company pages',
+      'Coordinate campus recruitment events',
+      'Track internship placements and completion rates',
+      'Generate career outcome reports for accreditation',
+    ],
+    planFeatures: [
+      { feature: 'Job board',                   starter: false,  pro: false,  enterprise: true,   university: true },
+      { feature: 'Internship management',        starter: false,  pro: false,  enterprise: true,   university: true },
+      { feature: 'CV / resume builder',          starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Career counselor booking',     starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Employer partner profiles',    starter: false,  pro: false,  enterprise: true,   university: true },
+      { feature: 'Alumni network',               starter: false,  pro: false,  enterprise: true,   university: true },
+      { feature: 'Mentorship matching',          starter: false,  pro: false,  enterprise: true,   university: true },
+      { feature: 'Alumni donations portal',      starter: false,  pro: false,  enterprise: false,  university: true },
+    ],
+    faq: [
+      { q: 'Can employers post jobs directly?', a: 'Yes — employer partners get a login to post positions and view applicant profiles. Admins approve employer accounts before access is granted.' },
+      { q: 'Is the alumni network private?', a: 'Yes — the alumni directory is only accessible to verified graduates and current students. Profiles are opt-in.' },
+      { q: 'Can students track multiple applications?', a: 'Yes — the application tracker shows status for every job and internship applied to from the portal.' },
+      { q: 'Are placement certificates generated automatically?', a: 'Yes — once a supervisor marks an internship complete with their feedback, a signed PDF certificate is generated and available for download.' },
+    ],
+    related: [
+      { slug: 'student-portal', title: 'Student Portal', desc: 'Main student experience hub' },
+      { slug: 'analytics', title: 'Analytics', desc: 'Placement rates and graduate outcome reports' },
+      { slug: 'student-life', title: 'Student Life', desc: 'Campus events and clubs' },
+    ],
+  },
+
+  // ── Operations ────────────────────────────────────────────────────────────
+  operations: {
+    title: 'Operations & Facilities',
+    tagline: 'Every room, asset, and maintenance request — tracked and managed in one place.',
+    description: 'Asset management with depreciation tracking, QR code attendance, maintenance request tracking, and a facility and room booking calendar.',
+    color: 'from-green-600 to-green-800',
+    ctaColor: 'from-green-700 to-green-900',
+    badge: 'Operations',
+    plan: 'Pro',
+    planColor: 'bg-green-600',
+    metrics: [
+      { value: 'QR', label: 'Attendance check-in' },
+      { value: 'Real-time', label: 'Maintenance tracking' },
+      { value: 'Auto', label: 'Depreciation calculation' },
+    ],
+    capabilityGroups: [
+      {
+        heading: 'Asset Management',
+        items: [
+          'Equipment, furniture, and device inventory tracking',
+          'Depreciation schedule with automatic calculation',
+          'Asset assignment to departments or individuals',
+          'QR code labels for physical asset identification',
+          'Disposal and write-off workflow',
+          'Asset utilization reports',
+        ],
+      },
+      {
+        heading: 'Attendance & Check-In',
+        items: [
+          'QR code attendance check-in for events and classes',
+          'Mobile-friendly QR scanner (no special hardware needed)',
+          'Manual attendance override by admin or staff',
+          'Attendance reports exportable to CSV or PDF',
+          'Late arrival and early exit tracking',
+          'Integration with academic attendance records',
+        ],
+      },
+      {
+        heading: 'Facilities & Maintenance',
+        items: [
+          'Maintenance request submission with photo upload',
+          'Request categorization (electrical, plumbing, IT, cleaning)',
+          'Assignment to maintenance staff with status tracking',
+          'Email and push notifications on request updates',
+          'Room and lab booking calendar (conflict-free)',
+          'Facility utilization reporting per room or building',
+        ],
+      },
+    ],
+    howItWorks: [
+      { step: '01', title: 'Log assets', desc: 'Add equipment and facilities to the inventory with category, value, and depreciation schedule.' },
+      { step: '02', title: 'Assign & track', desc: 'Assign assets to departments; QR labels link physical items to their digital record.' },
+      { step: '03', title: 'Handle requests', desc: 'Students and staff submit maintenance issues; facilities team gets notified and tracks resolution.' },
+      { step: '04', title: 'Book spaces', desc: 'Staff and students book rooms and labs from a shared calendar — clashes prevented automatically.' },
+    ],
+    forStudent: [
+      'Check in to events and classes with a QR code scan',
+      'Submit and track maintenance requests for your accommodation',
+      'Book study rooms and lab sessions from your portal',
+    ],
+    forTeacher: [
+      'Book labs and classrooms from a shared facility calendar',
+      'View asset inventory for your department',
+      'Submit maintenance requests with photo evidence',
+    ],
+    forAdmin: [
+      'Manage full asset inventory with depreciation schedules',
+      'Track all maintenance requests from submission to resolution',
+      'Generate facility utilization reports',
+      'Configure room booking rules and availability windows',
+    ],
+    planFeatures: [
+      { feature: 'Asset inventory',             starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Depreciation tracking',        starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'QR attendance check-in',       starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Maintenance requests',         starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Room booking calendar',        starter: false,  pro: true,   enterprise: true,   university: true },
+      { feature: 'Facility utilization reports', starter: false,  pro: false,  enterprise: true,   university: true },
+      { feature: 'Asset disposal workflow',      starter: false,  pro: false,  enterprise: true,   university: true },
+    ],
+    faq: [
+      { q: 'Does QR check-in require special hardware?', a: 'No — any smartphone camera works. Students and staff scan a displayed QR code using the Tera SM mobile app or browser.' },
+      { q: 'Can students submit maintenance requests with photos?', a: 'Yes — the submission form includes a photo upload. This helps maintenance staff diagnose issues faster.' },
+      { q: 'How does room booking prevent double-booking?', a: 'The facility calendar checks existing reservations in real time. When a conflicting slot is selected, it is blocked and an alternative is suggested.' },
+      { q: 'Are asset depreciation calculations customizable?', a: 'Yes — you can choose straight-line or reducing balance depreciation, set useful life, and configure residual values per asset category.' },
+    ],
+    related: [
+      { slug: 'academics', title: 'Academics', desc: 'Room and lab scheduling' },
+      { slug: 'student-life', title: 'Student Life', desc: 'Hostel and maintenance for students' },
+      { slug: 'analytics', title: 'Analytics', desc: 'Facility usage and asset reports' },
+    ],
+  },
+
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
