@@ -28,15 +28,17 @@ export async function POST(
   await prisma.user.update({ where: { id }, data: { passwordHash } })
 
   // Send password reset email (non-blocking)
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: session.user.tenantId },
-    select: { name: true },
-  })
+  const [tenant, tenantSettings] = await Promise.all([
+    prisma.tenant.findUnique({ where: { id: session.user.tenantId }, select: { name: true, logoUrl: true } }),
+    prisma.tenantSettings.findUnique({ where: { tenantId: session.user.tenantId }, select: { primaryColor: true } }),
+  ])
   sendPasswordResetEmail({
     to: user.email,
     firstName: user.firstName,
     schoolName: tenant?.name ?? 'Your School',
     newPassword: password,
+    logoUrl:    tenant?.logoUrl,
+    brandColor: tenantSettings?.primaryColor,
   }).catch(err => console.error('[reset password email]', err))
 
   return NextResponse.json({ success: true })

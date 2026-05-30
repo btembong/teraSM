@@ -7,10 +7,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  Building2, User, Mail, Eye, EyeOff, ChevronRight, ChevronLeft,
+  Building2, User, Mail, ChevronRight, ChevronLeft,
   Upload, Palette, BookOpen, MapPin, Award, Check, ShieldCheck,
-  Loader2, X, CheckCircle2
+  Loader2, X, CheckCircle2,
 } from 'lucide-react'
+import { FloatingInput } from '@/components/ui/floating-input'
 
 /* ─── Step definitions ─────────────────────────────────── */
 const STEPS = [
@@ -161,6 +162,74 @@ function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLText
   )
 }
 
+// ── Password strength ──────────────────────────────────────────────────────
+const PW_CHECKS = [
+  { label: '8+ characters',     test: (v: string) => v.length >= 8 },
+  { label: 'Uppercase letter',  test: (v: string) => /[A-Z]/.test(v) },
+  { label: 'Lowercase letter',  test: (v: string) => /[a-z]/.test(v) },
+  { label: 'Number',            test: (v: string) => /\d/.test(v) },
+  { label: 'Special character', test: (v: string) => /[^A-Za-z0-9]/.test(v) },
+]
+
+const STRENGTH_LEVELS = [
+  { label: 'Too weak',    barColor: 'bg-blue-100',   textColor: 'text-slate-400'   },
+  { label: 'Weak',        barColor: 'bg-blue-200',   textColor: 'text-blue-400'    },
+  { label: 'Fair',        barColor: 'bg-blue-400',   textColor: 'text-blue-500'    },
+  { label: 'Good',        barColor: 'bg-indigo-500', textColor: 'text-indigo-600'  },
+  { label: 'Strong',      barColor: 'bg-indigo-700', textColor: 'text-indigo-700'  },
+]
+
+function PasswordStrength({ value }: { value: string }) {
+  if (!value) return null
+  const passing = PW_CHECKS.filter(c => c.test(value)).length
+  const level   = STRENGTH_LEVELS[passing] ?? STRENGTH_LEVELS[4]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18 }}
+      className="mt-2 space-y-2"
+    >
+      {/* Strength bars */}
+      <div className="flex items-center gap-1.5">
+        <div className="flex gap-1 flex-1">
+          {STRENGTH_LEVELS.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                i < passing ? level.barColor : 'bg-gray-100'
+              }`}
+            />
+          ))}
+        </div>
+        <span className={`text-[11px] font-semibold w-16 text-right ${level.textColor}`}>
+          {level.label}
+        </span>
+      </div>
+
+      {/* Rule checklist */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-0.5">
+        {PW_CHECKS.map(c => {
+          const ok = c.test(value)
+          return (
+            <div key={c.label} className="flex items-center gap-1.5">
+              <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                ok ? 'bg-indigo-100' : 'bg-gray-100'
+              }`}>
+                <Check className={`w-2 h-2 transition-colors ${ok ? 'text-indigo-600' : 'text-gray-300'}`} />
+              </div>
+              <span className={`text-[11px] transition-colors ${ok ? 'text-gray-700' : 'text-gray-400'}`}>
+                {c.label}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </motion.div>
+  )
+}
+
 /* ═══════════════════════════════════════════════════════ */
 export default function RegisterPage() {
   const router = useRouter()
@@ -168,8 +237,8 @@ export default function RegisterPage() {
   const [dir, setDir]         = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
-  const [showPwd, setShowPwd] = useState(false)
   const [otp, setOtp]         = useState(['','','','','',''])
+  const [emailToken, setEmailToken] = useState('')   // issued by verify-otp, required by register API
   const otpRefs  = useRef<(HTMLInputElement | null)[]>([])
   const pinRefs  = useRef<(HTMLInputElement | null)[]>([])
   const sdTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -287,6 +356,8 @@ export default function RegisterPage() {
         })
         const data = await res.json()
         if (!res.ok) { setError(data.error ?? 'Incorrect code.'); setLoading(false); return }
+        // Store the email token — required by the register API to prove email ownership
+        setEmailToken(data.emailToken ?? '')
       } catch {
         setError('Network error. Please try again.')
         setLoading(false)
@@ -315,6 +386,7 @@ export default function RegisterPage() {
         email:        form.email,
         password:     form.password,
         pin:          form.pin,
+        emailToken,
         // School identity
         schoolName:         form.schoolName,
         shortName:          form.shortName,
@@ -362,35 +434,37 @@ export default function RegisterPage() {
   const step1 = (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <Field label="First name" required>
-          <Input placeholder="John" value={form.firstName} onChange={e => set('firstName', e.target.value)} />
-        </Field>
-        <Field label="Last name" required>
-          <Input placeholder="Doe" value={form.lastName} onChange={e => set('lastName', e.target.value)} />
-        </Field>
+        <FloatingInput label="First name" value={form.firstName} onChange={v => set('firstName', v)} required />
+        <FloatingInput label="Last name" value={form.lastName} onChange={v => set('lastName', v)} required />
       </div>
-      <Field label="Work email" required>
-        <Input type="email" placeholder="you@school.edu" value={form.email} onChange={e => set('email', e.target.value)} />
-      </Field>
-      <Field label="Password" required>
-        <div className="relative">
-          <Input
-            type={showPwd ? 'text' : 'password'}
-            placeholder="Min. 8 characters"
-            value={form.password}
-            onChange={e => set('password', e.target.value)}
-            className="pr-10"
-          />
-          <button type="button" onClick={() => setShowPwd(v => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-            {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        </div>
-      </Field>
-      <Field label="Confirm password" required>
-        <Input type="password" placeholder="Repeat password"
-          value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)} />
-      </Field>
+      <FloatingInput
+        label="Work email"
+        type="email"
+        value={form.email}
+        onChange={v => set('email', v)}
+        required
+        autoComplete="email"
+      />
+      <div>
+        <FloatingInput
+          label="Password"
+          type="password"
+          value={form.password}
+          onChange={v => set('password', v)}
+          required
+          autoComplete="new-password"
+        />
+        <PasswordStrength value={form.password} />
+      </div>
+      <FloatingInput
+        label="Confirm password"
+        type="password"
+        value={form.confirmPassword}
+        onChange={v => set('confirmPassword', v)}
+        required
+        autoComplete="new-password"
+        error={form.confirmPassword && form.password !== form.confirmPassword ? 'Passwords do not match' : undefined}
+      />
 
       <div className="pt-3 border-t border-gray-100">
         <div className="flex items-start gap-3 mb-4">

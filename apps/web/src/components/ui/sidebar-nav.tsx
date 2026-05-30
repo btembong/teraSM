@@ -128,9 +128,12 @@ const ADMIN_NAV: NavEntry[] = [
   { type: 'leaf', href: '/admin/announcements', label: 'Announcements',  Icon: Megaphone },
   { type: 'leaf', href: '/admin/student-life',  label: 'Student Life',   Icon: Smile },
   { type: 'leaf', href: '/admin/elections',     label: 'Elections',      Icon: Vote },
+  { type: 'leaf', href: '/admin/thesis',        label: 'Thesis Portal',  Icon: BookMarked },
+  { type: 'leaf', href: '/admin/alumni',        label: 'Alumni Network', Icon: GraduationCap },
   { type: 'leaf', href: '/admin/career',        label: 'Career Center',  Icon: Briefcase },
   { type: 'leaf', href: '/admin/ai',            label: 'AI & Intelligence', Icon: Bot },
   { type: 'leaf', href: '/admin/analytics',     label: 'Analytics',      Icon: BarChart2 },
+  { type: 'leaf', href: '/admin/campaigns',     label: 'Campaigns',      Icon: Megaphone },
   { type: 'leaf', href: '/admin/settings',      label: 'Settings',       Icon: Settings },
 ]
 
@@ -184,6 +187,8 @@ const STUDENT_NAV: NavEntry[] = [
       { type: 'leaf', href: '/student/hostel', label: 'Hostel', Icon: Building },
       { type: 'leaf', href: '/student/maintenance', label: 'Maintenance', Icon: Wrench },
       { type: 'leaf', href: '/student/elections', label: 'Elections', Icon: Vote },
+      { type: 'leaf', href: '/student/thesis', label: 'Thesis', Icon: BookMarked },
+      { type: 'leaf', href: '/student/alumni', label: 'Alumni Network', Icon: GraduationCap },
       { type: 'leaf', href: '/student/career', label: 'Career Center', Icon: Briefcase },
       { type: 'leaf', href: '/student/library', label: 'Library', Icon: Library },
       { type: 'leaf', href: '/student/counseling', label: 'Counseling', Icon: GraduationCap },
@@ -213,6 +218,7 @@ const FLAT_NAV: Record<Exclude<Portal, 'admin' | 'student'>, NavLeaf[]> = {
     { type: 'leaf', href: '/staff/invigilation', label: 'Invigilation', Icon: ClipboardCheck },
     { type: 'leaf', href: '/staff/announcements',label: 'Announcements',Icon: Megaphone },
     { type: 'leaf', href: '/staff/messages',     label: 'Messages',     Icon: MessageSquare },
+    { type: 'leaf', href: '/staff/thesis',       label: 'Thesis',       Icon: BookMarked },
     { type: 'leaf', href: '/staff/payslips',     label: 'Payslips',     Icon: DollarSign },
     { type: 'leaf', href: '/staff/leave',        label: 'Leave',        Icon: CalendarOff },
     { type: 'leaf', href: '/staff/profile',      label: 'Profile',      Icon: User },
@@ -373,10 +379,10 @@ export function SidebarNav({ portal, accentColor = 'blue', user, schoolName, sch
       {/* Logo / school header */}
       <div className="h-16 flex items-center px-5 border-b border-gray-100 flex-shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className={`w-8 h-8 ${a.bg} rounded-xl flex items-center justify-center shadow-sm overflow-hidden flex-shrink-0`}>
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-sm overflow-hidden flex-shrink-0 ${schoolLogo ? 'bg-white border border-gray-100' : a.bg}`}>
             {schoolLogo
-              ? <img src={schoolLogo} alt="logo" className="w-6 h-6 object-contain" />
-              : <span className="text-white text-xs font-bold">{initials}</span>
+              ? <img src={schoolLogo} alt="logo" className="w-full h-full object-cover" />
+              : <span className="text-white text-sm font-bold">{initials}</span>
             }
           </div>
           <div className="min-w-0">

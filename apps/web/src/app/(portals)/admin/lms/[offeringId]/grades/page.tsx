@@ -118,7 +118,7 @@ export default async function CourseGradesPage({
             <p className="text-sm">No enrolled students found.</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-hover">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
                 <th className="text-left px-6 py-3 font-medium text-gray-500 text-xs">Student</th>

@@ -1,226 +1,263 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
-  Search, LayoutDashboard, GraduationCap, Building2, BookOpen, CalendarRange,
-  DollarSign, CreditCard, FileText, Award, UserCog, Users, CalendarOff,
-  Library, Video, Megaphone, Smile, Vote, Briefcase, Bot, BarChart2,
-  Settings, UserPlus, X, ArrowRight,
+  Search, X, UserPlus, Mail, Megaphone, FileText, Video, Brain,
+  GraduationCap, DollarSign, BookOpen, Users, Settings, BarChart3,
+  UserCog, CalendarDays, Vote, BadgeCheck, Keyboard,
 } from 'lucide-react'
 
-// ─── Command definitions ──────────────────────────────────────────────────────
-
-interface Command {
-  label: string
-  desc?: string
-  href: string
-  Icon: React.ComponentType<{ className?: string }>
-  category: string
-  keywords?: string
-}
-
-const COMMANDS: Command[] = [
-  // Dashboard
-  { label: 'Dashboard', desc: 'Admin home overview', href: '/admin', Icon: LayoutDashboard, category: 'Navigation' },
-
-  // Academics
-  { label: 'Academics Overview', href: '/admin/academics', Icon: GraduationCap, category: 'Academics' },
-  { label: 'Departments', href: '/admin/academics/departments', Icon: Building2, category: 'Academics' },
-  { label: 'Courses', href: '/admin/academics/courses', Icon: BookOpen, category: 'Academics' },
-  { label: 'Academic Years', href: '/admin/academics/years', Icon: CalendarRange, category: 'Academics' },
-
-  // Finance
-  { label: 'Finance Overview', href: '/admin/finance', Icon: DollarSign, category: 'Finance' },
-  { label: 'Fee Structures', href: '/admin/finance/fees', Icon: CreditCard, category: 'Finance' },
-  { label: 'Invoices', href: '/admin/finance/invoices', Icon: FileText, category: 'Finance', keywords: 'billing payment' },
-  { label: 'Scholarships', href: '/admin/finance/scholarships', Icon: Award, category: 'Finance', keywords: 'bursary financial aid' },
-
-  // HR
-  { label: 'HR Overview', href: '/admin/hr', Icon: UserCog, category: 'HR' },
-  { label: 'Employees', href: '/admin/hr/employees', Icon: Users, category: 'HR', keywords: 'staff teachers' },
-  { label: 'Leave Requests', href: '/admin/hr/leave', Icon: CalendarOff, category: 'HR' },
-  { label: 'Payroll', href: '/admin/hr/payroll', Icon: CreditCard, category: 'HR', keywords: 'salary payslip' },
-
-  // Content & Classes
-  { label: 'LMS', desc: 'Course content & assignments', href: '/admin/lms', Icon: Library, category: 'Content' },
-  { label: 'Live Classes', href: '/admin/live-classes', Icon: Video, category: 'Content', keywords: 'video conference' },
-
-  // Communication
-  { label: 'Announcements', href: '/admin/announcements', Icon: Megaphone, category: 'Communication', keywords: 'broadcast message news' },
-
-  // Student life
-  { label: 'Student Life', desc: 'Clubs, events, hostel', href: '/admin/student-life', Icon: Smile, category: 'Student Life' },
-  { label: 'Elections', href: '/admin/elections', Icon: Vote, category: 'Student Life', keywords: 'voting polls' },
-  { label: 'Career Center', href: '/admin/career', Icon: Briefcase, category: 'Student Life', keywords: 'jobs internships alumni' },
-
-  // Platform
-  { label: 'AI & Intelligence', href: '/admin/ai', Icon: Bot, category: 'Platform', keywords: 'early warning prediction chatbot advisor' },
-  { label: 'Reports', href: '/admin/reports', Icon: BarChart2, category: 'Platform', keywords: 'analytics charts export' },
-  { label: 'All Users', href: '/admin/students', Icon: Users, category: 'Platform', keywords: 'students teachers staff manage' },
-  { label: 'Invitations', href: '/admin/invites', Icon: UserPlus, category: 'Platform', keywords: 'invite email onboard' },
-  { label: 'Settings', href: '/admin/settings', Icon: Settings, category: 'Platform', keywords: 'branding api webhooks billing' },
+const ALL_ACTIONS = [
+  { group: 'Quick Actions', label: 'Add User',          desc: 'Create a student, teacher or staff account', href: '/admin/students',            Icon: UserPlus    },
+  { group: 'Quick Actions', label: 'Send Invite',        desc: 'Email an invite link to join the school',   href: '/admin/invites',              Icon: Mail        },
+  { group: 'Quick Actions', label: 'Post Announcement',  desc: 'Broadcast a message school-wide',           href: '/admin/announcements',        Icon: Megaphone   },
+  { group: 'Quick Actions', label: 'Create Invoice',     desc: 'Issue a new fee invoice to a student',      href: '/admin/finance/invoices',     Icon: FileText    },
+  { group: 'Quick Actions', label: 'Schedule Class',     desc: 'Set up a live video class session',         href: '/admin/live-classes',         Icon: Video       },
+  { group: 'Quick Actions', label: 'AI Early Warning',   desc: 'View at-risk student predictions',          href: '/admin/ai',                   Icon: Brain       },
+  { group: 'Navigation',    label: 'Academics',          desc: 'Departments, courses, offerings',           href: '/admin/academics',            Icon: GraduationCap },
+  { group: 'Navigation',    label: 'Finance',            desc: 'Fees, invoices, scholarships',              href: '/admin/finance',              Icon: DollarSign  },
+  { group: 'Navigation',    label: 'LMS',                desc: 'Content, assignments, grading',             href: '/admin/lms',                  Icon: BookOpen    },
+  { group: 'Navigation',    label: 'HR',                 desc: 'Staff, leave, payroll',                     href: '/admin/hr',                   Icon: UserCog     },
+  { group: 'Navigation',    label: 'Students',           desc: 'Student records and profiles',              href: '/admin/students',             Icon: Users       },
+  { group: 'Navigation',    label: 'Live Classes',       desc: 'Schedule and manage video sessions',        href: '/admin/live-classes',         Icon: Video       },
+  { group: 'Navigation',    label: 'Calendar',           desc: 'Academic years and semesters',              href: '/admin/academics/calendar',   Icon: CalendarDays },
+  { group: 'Navigation',    label: 'Announcements',      desc: 'School-wide broadcasts',                    href: '/admin/announcements',        Icon: Megaphone   },
+  { group: 'Navigation',    label: 'Analytics',          desc: 'Reports and insights',                      href: '/admin/analytics',            Icon: BarChart3   },
+  { group: 'Navigation',    label: 'Scholarships',       desc: 'Bursaries and financial aid',               href: '/admin/finance/scholarships', Icon: BadgeCheck  },
+  { group: 'Navigation',    label: 'Elections',          desc: 'Student government voting',                 href: '/admin/elections',            Icon: Vote        },
+  { group: 'Navigation',    label: 'Settings',           desc: 'Platform configuration',                    href: '/admin/settings',             Icon: Settings    },
 ]
 
-const CATEGORIES = [...new Set(COMMANDS.map(c => c.category))]
+/* ─── Chord shortcuts — press g then a second key ─────────── */
+const CHORD_SHORTCUTS: Record<string, string> = {
+  a: '/admin/academics',
+  f: '/admin/finance',
+  l: '/admin/lms',
+  h: '/admin/hr',
+  t: '/admin/students',
+  n: '/admin/announcements',
+  x: '/admin/analytics',
+  s: '/admin/settings',
+  v: '/admin/live-classes',
+  i: '/admin/invites',
+}
 
-// ─── Filter ───────────────────────────────────────────────────────────────────
+/* ─── Shortcuts reference data ───────────────────────────── */
+const SHORTCUT_GROUPS = [
+  {
+    title: 'Global',
+    items: [
+      { keys: ['⌘', 'K'],       label: 'Open command palette' },
+      { keys: ['?'],             label: 'Show keyboard shortcuts' },
+      { keys: ['Esc'],           label: 'Close any modal / palette' },
+    ],
+  },
+  {
+    title: 'Go to (g + key)',
+    items: [
+      { keys: ['g', 'a'], label: 'Academics'    },
+      { keys: ['g', 'f'], label: 'Finance'      },
+      { keys: ['g', 'l'], label: 'LMS'          },
+      { keys: ['g', 'h'], label: 'HR'           },
+      { keys: ['g', 't'], label: 'Students'     },
+      { keys: ['g', 'n'], label: 'Announcements' },
+      { keys: ['g', 'x'], label: 'Analytics'    },
+      { keys: ['g', 's'], label: 'Settings'     },
+      { keys: ['g', 'v'], label: 'Live Classes' },
+      { keys: ['g', 'i'], label: 'Invites'      },
+    ],
+  },
+]
 
-function filterCommands(query: string): Command[] {
-  if (!query.trim()) return COMMANDS
-  const q = query.toLowerCase()
-  return COMMANDS.filter(c =>
-    c.label.toLowerCase().includes(q) ||
-    (c.desc ?? '').toLowerCase().includes(q) ||
-    c.category.toLowerCase().includes(q) ||
-    (c.keywords ?? '').toLowerCase().includes(q)
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="inline-flex items-center px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 font-mono text-[10px] text-slate-600 min-w-[20px] justify-center">
+      {children}
+    </kbd>
   )
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function CommandPalette() {
-  const [open, setOpen] = useState(false)
+  const router  = useRouter()
+  const [open,  setOpen]  = useState(false)
+  const [sheet, setSheet] = useState(false)   // ? shortcuts sheet
   const [query, setQuery] = useState('')
-  const [activeIdx, setActiveIdx] = useState(0)
-  const router = useRouter()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const listRef = useRef<HTMLDivElement>(null)
+  const inputRef  = useRef<HTMLInputElement>(null)
+  const chordRef  = useRef(false)              // true when 'g' was just pressed
+  const chordTimer = useRef<ReturnType<typeof setTimeout>>()
 
-  const results = filterCommands(query)
-
-  // Open on Ctrl+K / Cmd+K
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName
+      const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || (e.target as HTMLElement).isContentEditable
+
+      // ⌘K / Ctrl+K — command palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        setOpen(v => !v)
+        setSheet(false)
+        setOpen(o => !o)
+        setQuery('')
+        return
       }
-      if (e.key === 'Escape') setOpen(false)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
 
-  // Focus input when opened
-  useEffect(() => {
-    if (open) {
-      setQuery('')
-      setActiveIdx(0)
-      setTimeout(() => inputRef.current?.focus(), 10)
+      // Escape
+      if (e.key === 'Escape') {
+        setOpen(false)
+        setSheet(false)
+        chordRef.current = false
+        clearTimeout(chordTimer.current)
+        return
+      }
+
+      if (typing || open || sheet) return
+
+      // ? — shortcuts sheet
+      if (e.key === '?') {
+        e.preventDefault()
+        setSheet(s => !s)
+        return
+      }
+
+      // Chord: g then second key
+      if (chordRef.current) {
+        chordRef.current = false
+        clearTimeout(chordTimer.current)
+        const dest = CHORD_SHORTCUTS[e.key]
+        if (dest) { e.preventDefault(); router.push(dest) }
+        return
+      }
+
+      if (e.key === 'g' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        chordRef.current = true
+        chordTimer.current = setTimeout(() => { chordRef.current = false }, 800)
+      }
     }
+
+    window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('keydown', onKey); clearTimeout(chordTimer.current) }
+  }, [open, sheet, router])
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 50)
   }, [open])
 
-  const navigate = useCallback((href: string) => {
-    setOpen(false)
-    router.push(href)
-  }, [router])
+  const filtered = query.trim()
+    ? ALL_ACTIONS.filter(a =>
+        a.label.toLowerCase().includes(query.toLowerCase()) ||
+        a.desc.toLowerCase().includes(query.toLowerCase())
+      )
+    : ALL_ACTIONS
 
-  // Keyboard navigation within results
-  function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setActiveIdx(i => Math.min(i + 1, results.length - 1))
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setActiveIdx(i => Math.max(i - 1, 0))
-    } else if (e.key === 'Enter' && results[activeIdx]) {
-      navigate(results[activeIdx].href)
-    }
-  }
+  const groups = [...new Set(filtered.map(a => a.group))]
 
-  // Scroll active item into view
-  useEffect(() => {
-    const el = listRef.current?.querySelector(`[data-idx="${activeIdx}"]`)
-    el?.scrollIntoView({ block: 'nearest' })
-  }, [activeIdx])
+  /* ── Shortcuts sheet ── */
+  if (sheet) return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/40 backdrop-blur-sm"
+      onClick={() => setSheet(false)}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
+          <Keyboard className="w-4 h-4 text-slate-400" />
+          <p className="flex-1 text-sm font-semibold text-slate-700">Keyboard Shortcuts</p>
+          <button onClick={() => setSheet(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="max-h-[70vh] overflow-y-auto py-3">
+          {SHORTCUT_GROUPS.map(g => (
+            <div key={g.title} className="mb-4">
+              <p className="px-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">{g.title}</p>
+              {g.items.map((item, i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 transition-colors">
+                  <span className="text-sm text-slate-600">{item.label}</span>
+                  <div className="flex items-center gap-1">
+                    {item.keys.map((k, j) => <Kbd key={j}>{k}</Kbd>)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="px-4 py-2.5 border-t border-gray-50">
+          <p className="text-[10px] text-slate-400">Press <Kbd>?</Kbd> anywhere to toggle this sheet</p>
+        </div>
+      </div>
+    </div>
+  )
 
+  /* ── Command palette ── */
   if (!open) return null
-
-  // Group results by category
-  const grouped: Record<string, Command[]> = {}
-  results.forEach(cmd => {
-    if (!grouped[cmd.category]) grouped[cmd.category] = []
-    grouped[cmd.category].push(cmd)
-  })
-
-  // Flat index lookup
-  let flatIdx = 0
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/40 backdrop-blur-sm"
       onClick={() => setOpen(false)}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-
-      {/* Panel */}
       <div
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100"
+        className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
-          <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
           <input
             ref={inputRef}
             value={query}
-            onChange={e => { setQuery(e.target.value); setActiveIdx(0) }}
-            onKeyDown={onKeyDown}
-            placeholder="Search pages and actions..."
-            className="flex-1 text-sm text-gray-900 placeholder-gray-400 outline-none bg-transparent"
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search actions or pages..."
+            className="flex-1 text-sm text-slate-900 outline-none placeholder:text-slate-400 bg-transparent"
           />
-          {query && (
-            <button onClick={() => setQuery('')} className="text-gray-400 hover:text-gray-600">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 text-xs font-mono text-gray-400">esc</kbd>
+          <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Results */}
-        <div ref={listRef} className="max-h-[400px] overflow-y-auto py-2">
-          {results.length === 0 ? (
-            <p className="text-center text-sm text-gray-400 py-10">No results for &quot;{query}&quot;</p>
+        <div className="max-h-80 overflow-y-auto py-2">
+          {filtered.length === 0 ? (
+            <p className="text-center text-sm text-slate-400 py-8">No results for &quot;{query}&quot;</p>
           ) : (
-            Object.entries(grouped).map(([category, cmds]) => (
-              <div key={category}>
-                <p className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">{category}</p>
-                {cmds.map(cmd => {
-                  const idx = flatIdx++
-                  const isActive = idx === activeIdx
-                  return (
-                    <button
-                      key={cmd.href}
-                      data-idx={idx}
-                      onClick={() => navigate(cmd.href)}
-                      onMouseEnter={() => setActiveIdx(idx)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                        isActive ? 'bg-blue-50' : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                        <cmd.Icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${isActive ? 'text-blue-700' : 'text-gray-900'}`}>{cmd.label}</p>
-                        {cmd.desc && <p className="text-xs text-gray-400 truncate">{cmd.desc}</p>}
-                      </div>
-                      {isActive && <ArrowRight className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />}
-                    </button>
-                  )
-                })}
+            groups.map(group => (
+              <div key={group}>
+                <p className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">{group}</p>
+                {filtered.filter(a => a.group === group).map(a => (
+                  <Link
+                    key={a.href + a.label}
+                    href={a.href}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50 transition-colors group"
+                  >
+                    <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 transition-colors">
+                      <a.Icon className="w-4 h-4 text-slate-500 group-hover:text-indigo-600 transition-colors" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors">{a.label}</p>
+                      <p className="text-xs text-slate-400 truncate">{a.desc}</p>
+                    </div>
+                  </Link>
+                ))}
               </div>
             ))
           )}
         </div>
 
-        {/* Footer hint */}
-        <div className="px-4 py-2.5 border-t border-gray-50 flex items-center gap-4 text-xs text-gray-400">
-          <span className="flex items-center gap-1"><kbd className="font-mono border border-gray-200 rounded px-1 bg-gray-50">↑↓</kbd> navigate</span>
-          <span className="flex items-center gap-1"><kbd className="font-mono border border-gray-200 rounded px-1 bg-gray-50">↵</kbd> open</span>
-          <span className="flex items-center gap-1"><kbd className="font-mono border border-gray-200 rounded px-1 bg-gray-50">esc</kbd> close</span>
+        <div className="px-4 py-2.5 border-t border-gray-50 flex items-center gap-4">
+          <span className="text-[10px] text-slate-400 flex items-center gap-1.5">
+            <Kbd>↵</Kbd> to open
+          </span>
+          <span className="text-[10px] text-slate-400 flex items-center gap-1.5">
+            <Kbd>Esc</Kbd> to close
+          </span>
+          <button
+            onClick={() => { setOpen(false); setSheet(true) }}
+            className="ml-auto text-[10px] text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors"
+          >
+            <Kbd>?</Kbd> shortcuts
+          </button>
         </div>
       </div>
     </div>

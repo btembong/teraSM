@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import {
   ClipboardList, Search, RefreshCw, Eye, Loader2, Download,
   X, Save, CheckCircle, XCircle, FileText,
-  BarChart2, Users, TrendingUp, UserPlus, Star, AlertCircle,
+  BarChart2, TrendingUp, UserPlus, Star, AlertCircle, Link2,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -93,6 +94,15 @@ export default function AdminAdmissionsPage() {
   const [convertResult, setConvertResult] = useState<{ tempPassword?: string; userId?: string } | null>(null)
   const [analytics, setAnalytics]   = useState<Analytics | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [generatingOffer, setGeneratingOffer] = useState(false)
+  const [tenantSlug, setTenantSlug]           = useState('')
+
+  // Fetch own tenant slug once (used to build public apply URL)
+  useEffect(() => {
+    fetch('/api/admin/me').then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.tenant?.slug) setTenantSlug(d.tenant.slug)
+    }).catch(() => {})
+  }, [])
 
   const load = async () => {
     setLoading(true)
@@ -172,6 +182,24 @@ export default function AdminAdmissionsPage() {
     setConverting(false)
   }
 
+  const generateOfferLetter = async () => {
+    if (!selected) return
+    setGeneratingOffer(true)
+    try {
+      const res  = await fetch(`/api/admin/admissions/${selected.id}/offer-letter`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
+      })
+      const data = await res.json()
+      if (!res.ok) { alert(data.message ?? 'Failed to generate offer letter.'); return }
+      const updatedApp = { ...selected, offerLetterUrl: data.offerLetterUrl, referenceNumber: data.referenceNumber }
+      setSelected(updatedApp)
+      setApps(prev => prev.map(a => a.id === selected.id ? updatedApp : a))
+      // Open PDF in new tab
+      window.open(data.offerLetterUrl, '_blank')
+    } catch { alert('Network error.') }
+    finally { setGeneratingOffer(false) }
+  }
+
   const deleteApp = async (id: string) => {
     if (!confirm('Delete this application? This cannot be undone.')) return
     await fetch(`/api/admin/admissions/${id}`, { method: 'DELETE' })
@@ -218,6 +246,27 @@ export default function AdminAdmissionsPage() {
           </button>
         </div>
       </div>
+
+      {/* ── Public apply link banner ── */}
+      {tenantSlug && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-2xl text-sm">
+          <Link2 className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <span className="text-indigo-700 font-medium">Public application link: </span>
+            <span className="text-indigo-500 font-mono text-xs truncate">{window.location.origin}/apply/{tenantSlug}</span>
+          </div>
+          <button
+            onClick={() => navigator.clipboard.writeText(`${window.location.origin}/apply/${tenantSlug}`).catch(() => {})}
+            className="flex-shrink-0 text-xs font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-200 px-2.5 py-1 rounded-lg hover:bg-indigo-100 transition-colors"
+          >
+            Copy
+          </button>
+          <a href={`/apply/${tenantSlug}`} target="_blank" rel="noreferrer"
+            className="flex-shrink-0 text-xs font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-200 px-2.5 py-1 rounded-lg hover:bg-indigo-100 transition-colors">
+            Open ↗
+          </a>
+        </div>
+      )}
 
       {/* ── Sub-tabs ── */}
       <div className="flex items-center gap-0.5 bg-indigo-100/70 rounded-2xl p-1 w-fit">
@@ -282,9 +331,7 @@ export default function AdminAdmissionsPage() {
 
           {/* Table */}
           {loading ? (
-            <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-              <Loader2 className="w-5 h-5 animate-spin" /> Loading…
-            </div>
+            <SkeletonTable rows={5} />
           ) : apps.length === 0 ? (
             <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
               <ClipboardList className="w-8 h-8 text-gray-300 mx-auto mb-2" />
@@ -292,7 +339,7 @@ export default function AdminAdmissionsPage() {
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-hover">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
                     <th className={TH}>Applicant</th>
@@ -367,9 +414,7 @@ export default function AdminAdmissionsPage() {
       {/* ── ANALYTICS TAB ── */}
       {tab === 'analytics' && (
         analyticsLoading ? (
-          <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-            <Loader2 className="w-5 h-5 animate-spin" /> Loading analytics…
-          </div>
+          <SkeletonTable rows={3} />
         ) : analytics ? (
           <div className="space-y-5">
             {/* KPI cards */}
@@ -522,12 +567,12 @@ export default function AdminAdmissionsPage() {
                     ['DOB', selected.dateOfBirth ? new Date(selected.dateOfBirth).toLocaleDateString('en-GB') : null],
                     ['Gender', selected.gender],
                     ['Nationality', selected.nationality],
-                  ] as [string, string | null][]).map(([k, v]) => v && (
+                  ] as [string, string | null][]).map(([k, v]) => v ? (
                     <div key={k}>
                       <p className="text-xs text-gray-400">{k}</p>
                       <p className="font-medium text-gray-900 mt-0.5">{v}</p>
                     </div>
-                  ))}
+                  ) : null)}
                   {selected.address && (
                     <div className="col-span-2">
                       <p className="text-xs text-gray-400">Address</p>
@@ -681,6 +726,21 @@ export default function AdminAdmissionsPage() {
                     </button>
                   )}
 
+                  {(selected.status === 'OFFERED' || selected.status === 'ACCEPTED') && (
+                    <button onClick={generateOfferLetter} disabled={generatingOffer}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors">
+                      {generatingOffer ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                      {selected.offerLetterUrl ? 'Regenerate Offer Letter' : 'Generate Offer Letter'}
+                    </button>
+                  )}
+
+                  {selected.offerLetterUrl && (
+                    <a href={selected.offerLetterUrl} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 border border-blue-200 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-xl transition-colors">
+                      <Download className="w-4 h-4" /> Download Letter
+                    </a>
+                  )}
+
                   <button onClick={() => deleteApp(selected.id)}
                     className="px-4 py-2 text-red-600 text-sm font-medium hover:bg-red-50 rounded-xl transition-colors ml-auto">
                     Delete
@@ -703,15 +763,22 @@ export default function AdminAdmissionsPage() {
                 )}
 
                 {/* Tracking link */}
-                <div className="mt-4 p-3 bg-gray-50 rounded-xl text-xs text-gray-500">
-                  <p className="font-semibold text-gray-700 mb-1">Applicant Tracking Link</p>
-                  <button
-                    className="text-indigo-600 hover:text-indigo-800 underline break-all text-left"
-                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/apply/track/${selected.id}`).catch(() => {})}
-                  >
-                    Copy tracking link ↗
-                  </button>
-                </div>
+                {tenantSlug && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-xl text-xs text-gray-500">
+                    <p className="font-semibold text-gray-700 mb-1">Applicant Tracking Link</p>
+                    <p className="text-gray-400 mb-1.5 break-all font-mono truncate">
+                      /apply/{tenantSlug}/track/{selected.id.slice(0, 8)}…
+                    </p>
+                    <button
+                      className="text-indigo-600 hover:text-indigo-800 underline text-left"
+                      onClick={() => navigator.clipboard.writeText(
+                        `${window.location.origin}/apply/${tenantSlug}/track/${(selected as any).trackingToken}`
+                      ).catch(() => {})}
+                    >
+                      Copy tracking link ↗
+                    </button>
+                  </div>
+                )}
               </section>
 
               <p className="text-xs text-gray-400">Applied {new Date(selected.createdAt).toLocaleString('en-GB')}</p>

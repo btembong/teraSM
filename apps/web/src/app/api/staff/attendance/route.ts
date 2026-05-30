@@ -1,5 +1,6 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyUser } from '@/lib/send-notification'
 import { NextResponse } from 'next/server'
 
 // GET — fetch attendance for a course+date
@@ -52,6 +53,29 @@ export async function POST(req: Request) {
       })
     )
   )
+
+  // Notify absent students (fire-and-forget)
+  const absentRecords = records.filter((r: { studentId: string; status: string }) => r.status === 'ABSENT')
+  if (absentRecords.length > 0) {
+    const offering = await prisma.courseOffering.findUnique({
+      where: { id: courseOfferingId },
+      include: { course: { select: { code: true, title: true } } },
+    })
+    if (offering) {
+      Promise.all(
+        absentRecords.map((r: { studentId: string }) =>
+          notifyUser({
+            tenantId,
+            userId: r.studentId,
+            type: 'MISSED_CLASS',
+            title: 'Absent from Class',
+            body: `You were marked absent from ${offering.course.code} — ${offering.course.title} on ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`,
+            link: '/student/schedule',
+          })
+        )
+      ).catch(err => console.error('[attendance-notify]', err))
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }

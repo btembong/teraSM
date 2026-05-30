@@ -83,6 +83,21 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── Table row hover micro-interactions ─────────────────── */
+@layer utilities {
+  .table-hover tbody tr {
+    @apply transition-all duration-150 cursor-pointer;
+  }
+  .table-hover tbody tr:hover {
+    @apply bg-indigo-50/60;
+    transform: translateX(2px);
+    box-shadow: -2px 0 0 0 #6366f1;
+  }
+  .table-hover tbody tr:active {
+    @apply bg-indigo-100/60;
+  }
+}
+
 @keyframes marquee {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }

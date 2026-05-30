@@ -6,6 +6,9 @@ import { ForceLight } from '@/components/layout/force-light'
 import { CommandPalette } from '@/components/ui/command-palette'
 import { AdminTopBar } from '@/components/ui/admin-top-bar'
 import { OnboardingVideo } from '@/components/ui/onboarding-video'
+import { ToastProvider } from '@/components/ui/toast'
+import { AdminOnboardingTour } from '@/components/ui/onboarding-tour'
+import { LockScreenModal } from '@/components/ui/lock-screen'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -33,8 +36,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <ForceLight>
+    <ToastProvider>
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col shadow-sm">
+      <aside data-tour="sidebar" className="w-64 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col shadow-sm">
         <SidebarNav
           portal="admin"
           accentColor="blue"
@@ -55,12 +59,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </div>
     </div>
     <CommandPalette />
+    <AdminOnboardingTour />
+    <LockScreenModal schoolName={tenant?.name ?? null} schoolLogo={tenant?.logoUrl ?? null} />
     <OnboardingVideo
       storageKey="tera_onboarding_admin"
       title="Welcome to your Admin Panel"
       subtitle="Quick 2-min tour to get started"
       videoSrc={process.env.ADMIN_ONBOARDING_VIDEO_URL ?? ''}
     />
+    </ToastProvider>
     </ForceLight>
   )
 }

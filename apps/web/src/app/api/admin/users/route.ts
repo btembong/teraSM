@@ -204,7 +204,7 @@ export async function POST(req: NextRequest) {
   const [tenant, settings] = await Promise.all([
     prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { name: true, email: true, studentCap: true },
+      select: { name: true, email: true, studentCap: true, logoUrl: true },
     }),
     prisma.tenantSettings.findUnique({ where: { tenantId } }),
   ])
@@ -214,6 +214,8 @@ export async function POST(req: NextRequest) {
     firstName: user.firstName,
     schoolName: tenant?.name ?? 'Your School',
     temporaryPassword: password,
+    logoUrl:    tenant?.logoUrl,
+    brandColor: (settings as any)?.primaryColor,
   }).catch(err => console.error('[welcome email]', err))
 
   // Usage alert — only for STUDENT role

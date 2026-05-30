@@ -8,7 +8,9 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-import { calculateCGPA, isPassing } from '@/lib/grading'
+import { calculateCGPA } from '@/lib/grading'
+import { sendGradesPublishedEmail } from '@/lib/email'
+import { notifyUser } from '@/lib/send-notification'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -68,6 +70,47 @@ export async function POST(req: NextRequest) {
       where: { tenantId, userId: studentId },
       data: { cgpa, totalCredits },
     })
+  }
+
+  // Email all affected students about their published grades (non-blocking)
+  const [semester, tenant] = await Promise.all([
+    prisma.semester.findUnique({
+      where: { id: offering.semesterId },
+      select: { name: true },
+    }),
+    prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }),
+  ])
+
+  if (semester && tenant) {
+    const studentUsers = await prisma.user.findMany({
+      where: { id: { in: studentIds }, tenantId },
+      select: { firstName: true, email: true, id: true },
+    })
+    for (const student of studentUsers) {
+      const studentUpdate = updates.find(u => u.studentId === student.id)
+      const studentGradeCount = affectedGrades.filter(g => g.studentId === student.id).length
+
+      // Email notification (non-blocking)
+      sendGradesPublishedEmail({
+        to: student.email,
+        firstName: student.firstName,
+        schoolName: tenant.name,
+        semesterName: semester.name,
+        gpa: studentUpdate ? studentUpdate.cgpa.toFixed(2) : '0.00',
+        totalCredits: studentUpdate?.totalCredits ?? 0,
+        courseCount: studentGradeCount,
+      }).catch(err => console.error('[grades-published-email]', err))
+
+      // In-app + push notification (non-blocking)
+      notifyUser({
+        tenantId,
+        userId: student.id,
+        type: 'GRADE_PUBLISHED',
+        title: 'Your Grades Are Published',
+        body: `Results for ${semester.name} are now available. GPA: ${studentUpdate ? studentUpdate.cgpa.toFixed(2) : '0.00'}.`,
+        link: '/student/results',
+      }).catch(err => console.error('[grades-published-notify]', err))
+    }
   }
 
   return NextResponse.json({

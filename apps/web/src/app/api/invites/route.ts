@@ -40,11 +40,14 @@ export async function POST(req: NextRequest) {
     ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
     : undefined
 
-  // Fetch school name for email templates
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: session.user.tenantId },
-    select: { name: true },
-  })
+  // Fetch school branding for email templates
+  const [tenant, tenantSettings] = await Promise.all([
+    prisma.tenant.findUnique({
+      where: { id: session.user.tenantId },
+      select: { name: true, logoUrl: true },
+    }),
+    prisma.tenantSettings.findUnique({ where: { tenantId: session.user.tenantId }, select: { primaryColor: true } }),
+  ])
   const schoolName = tenant?.name ?? 'Your School'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
@@ -83,6 +86,8 @@ export async function POST(req: NextRequest) {
         role,
         inviteUrl: `${appUrl}/invite/${invite.token}`,
         expiresAt: invite.expiresAt,
+        logoUrl:   tenant?.logoUrl,
+        brandColor: tenantSettings?.primaryColor,
       }).catch(err => console.error('[invite email]', err))
       return invite
     })

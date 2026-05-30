@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useInView } from 'framer-motion'
 import BookingSection from './_components/BookingSection'
 import ROICalculator from './_components/ROICalculator'
 import IntegrationsSection from './_components/IntegrationsSection'
@@ -16,7 +16,7 @@ import {
   ChevronDown, BarChart2, BookOpen, Calendar, MessageSquare,
   Briefcase, Palette, ExternalLink, TrendingUp,
   Smartphone, Wifi, Languages, FileSpreadsheet,
-  Brain, Award, Building2, ChevronRight, Library, X,
+  Brain, Award, Building2, ChevronRight, Library, X, Play,
 } from 'lucide-react'
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
@@ -169,6 +169,32 @@ const WINS = [
 ]
 
 // ─── COMPONENTS ──────────────────────────────────────────────────────────────
+
+const ROTATING_WORDS = ['universities', 'colleges', 'K-12 schools', 'Africa']
+
+function RotatingWord() {
+  const [idx, setIdx] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setIdx(i => (i + 1) % ROTATING_WORDS.length), 2800)
+    return () => clearInterval(t)
+  }, [])
+  return (
+    <span className="relative inline-flex" style={{ minWidth: '6ch' }}>
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={idx}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -16 }}
+          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+          className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 bg-clip-text text-transparent"
+        >
+          {ROTATING_WORDS[idx]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  )
+}
 
 function PortalMockup({ portal }: { portal: PortalTab }) {
   const d = portalData[portal]
@@ -671,6 +697,72 @@ function FeatureSection() {
   )
 }
 
+// ─── Animated stat card ───────────────────────────────────────────────────────
+
+const glowMap: Record<string, string> = {
+  'text-blue-600':   'from-blue-50 to-white shadow-blue-100',
+  'text-blue-500':   'from-blue-50 to-white shadow-blue-100',
+  'text-indigo-600': 'from-indigo-50 to-white shadow-indigo-100',
+  'text-indigo-500': 'from-indigo-50 to-white shadow-indigo-100',
+}
+
+const dotMap: Record<string, string> = {
+  'text-blue-600':   'bg-blue-600',
+  'text-blue-500':   'bg-blue-500',
+  'text-indigo-600': 'bg-indigo-600',
+  'text-indigo-500': 'bg-indigo-500',
+}
+
+function CountUpStat({ value, label, sub, color, delay }: {
+  value: string; label: string; sub: string; color: string; delay: number
+}) {
+  const match = value.match(/^(\d+)(.*)$/)
+  const num    = match ? parseInt(match[1], 10) : 0
+  const suffix = match ? match[2] : value
+
+  const ref    = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-60px' })
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    if (!inView) return
+    const steps = 60; const duration = 1400; const interval = duration / steps
+    let step = 0
+    const timer = setInterval(() => {
+      step++
+      const eased = 1 - Math.pow(1 - step / steps, 3)
+      setCount(Math.round(eased * num))
+      if (step >= steps) { setCount(num); clearInterval(timer) }
+    }, interval)
+    return () => clearInterval(timer)
+  }, [inView, num])
+
+  const gradient = glowMap[color] ?? 'from-blue-50 to-white shadow-blue-100'
+  const dot      = dotMap[color]  ?? 'bg-blue-600'
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 28 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={`relative bg-gradient-to-b ${gradient} rounded-2xl p-7 border border-gray-100 dark:border-gray-800 text-center overflow-hidden shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all`}
+    >
+      {/* Subtle radial glow behind number */}
+      <div className="absolute inset-x-0 -top-6 h-24 bg-gradient-to-b from-blue-100/60 to-transparent pointer-events-none" />
+      {/* Animated dot indicator */}
+      <div className="relative flex justify-center mb-4">
+        <span className={`w-2 h-2 rounded-full ${dot} opacity-80`} />
+      </div>
+      <p className={`relative text-5xl font-black ${color} mb-2 tabular-nums tracking-tight`}>
+        {count}{suffix}
+      </p>
+      <p className="font-semibold text-gray-800 dark:text-white text-sm mb-0.5">{label}</p>
+      <p className="text-xs text-gray-400">{sub}</p>
+    </motion.div>
+  )
+}
+
 // ─── Newsletter ───────────────────────────────────────────────────────────────
 
 function NewsletterForm() {
@@ -714,6 +806,10 @@ function NewsletterForm() {
 export default function HomePage() {
   const [activePortal, setActivePortal] = useState<PortalTab>('Student')
   const [annual, setAnnual] = useState(true)
+  const [showDemo, setShowDemo] = useState(false)
+  const [studentCount, setStudentCount] = useState(500)
+  const [scrollY, setScrollY] = useState(0)
+  const [ctaDismissed, setCtaDismissed] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const startAutoSwipe = useCallback(() => {
@@ -745,6 +841,12 @@ export default function HomePage() {
     startWinAutoSwipe()
     return () => { if (winIntervalRef.current) clearInterval(winIntervalRef.current) }
   }, [startWinAutoSwipe])
+
+  useEffect(() => {
+    const handler = () => setScrollY(window.scrollY)
+    window.addEventListener('scroll', handler, { passive: true })
+    return () => window.removeEventListener('scroll', handler)
+  }, [])
 
   const pricingPlans = [
     {
@@ -795,10 +897,8 @@ export default function HomePage() {
           {/* Headline — centred */}
           <div className="text-center mb-8 max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-6xl lg:text-[72px] font-bold text-gray-900 dark:text-white leading-[1.05] tracking-tight mb-6">
-              The school platform<br />
-              <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 bg-clip-text text-transparent">
-                built for Africa
-              </span>
+              The platform<br />
+              built for <RotatingWord />
             </h1>
             <p className="text-lg md:text-xl text-gray-500 dark:text-gray-400 leading-relaxed max-w-2xl mx-auto">
               Replace the WhatsApp groups and Excel sheets. Run your whole institution — academics, finance, HR, and live classes — from one platform under your school's brand.
@@ -810,9 +910,15 @@ export default function HomePage() {
             <Link href="/register" className="flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-base font-semibold transition-all shadow-xl shadow-blue-200 hover:-translate-y-0.5 active:translate-y-0">
               Start free trial <ArrowRight className="w-4 h-4" />
             </Link>
-            <a href="/contact" className="flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-2xl text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all hover:-translate-y-0.5 active:translate-y-0">
-              Book a demo
-            </a>
+            <button
+              onClick={() => setShowDemo(true)}
+              className="flex items-center gap-2.5 px-8 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-2xl text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <Play className="w-3 h-3 text-white fill-white ml-0.5" />
+              </div>
+              Watch 2-min demo
+            </button>
           </div>
 
           {/* Trust bar */}
@@ -840,13 +946,22 @@ export default function HomePage() {
               <button
                 key={tab}
                 onClick={() => { setActivePortal(tab); startAutoSwipe() }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                className={`relative px-4 py-2 rounded-xl text-sm font-semibold transition-all overflow-hidden ${
                   activePortal === tab
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40'
                     : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
               >
                 {tab}
+                {activePortal === tab && (
+                  <motion.span
+                    key={tab}
+                    className="absolute bottom-0 left-0 h-0.5 bg-white/50 rounded-full"
+                    initial={{ width: '0%' }}
+                    animate={{ width: '100%' }}
+                    transition={{ duration: 3.5, ease: 'linear' }}
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -930,17 +1045,13 @@ export default function HomePage() {
       <section className="py-20 bg-white dark:bg-gray-950">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { value: '50+', label: 'Institutions', sub: 'across 15 countries', color: 'text-blue-600' },
-              { value: '100k+', label: 'Students', sub: 'on the platform', color: 'text-indigo-600' },
-              { value: '94%', label: 'Fee collection rate', sub: 'avg. after switch', color: 'text-green-600' },
-              { value: '40%', label: 'Admin time saved', sub: 'reported by schools', color: 'text-orange-500' },
-            ].map((s) => (
-              <div key={s.label} className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800 text-center hover:shadow-sm transition-shadow">
-                <p className={`text-4xl font-bold ${s.color} mb-1`}>{s.value}</p>
-                <p className="font-semibold text-gray-900 dark:text-white text-sm">{s.label}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>
-              </div>
+            {([
+              { value: '50+',   label: 'Institutions',        sub: 'across 15 countries', color: 'text-blue-600'   },
+              { value: '100k+', label: 'Students',            sub: 'on the platform',     color: 'text-indigo-600' },
+              { value: '94%',   label: 'Fee collection rate', sub: 'avg. after switch',   color: 'text-blue-500'   },
+              { value: '40%',   label: 'Admin time saved',    sub: 'reported by schools', color: 'text-indigo-500' },
+            ] as const).map((s, i) => (
+              <CountUpStat key={s.label} value={s.value} label={s.label} sub={s.sub} color={s.color} delay={i * 0.1} />
             ))}
           </div>
         </div>
@@ -952,10 +1063,6 @@ export default function HomePage() {
 
           {/* Header */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-blue-950/60 border border-blue-800/50 rounded-full px-4 py-1.5 text-sm text-blue-400 font-medium mb-6">
-              <Zap className="w-3.5 h-3.5" />
-              Why choose Tera SM
-            </div>
             <h2 className="text-4xl font-bold text-white mb-4">Replace the chaos, not just the tools</h2>
             <p className="text-slate-400 max-w-xl mx-auto leading-relaxed">
               Most institutions run on WhatsApp groups and Excel sheets. Here is what changes the day you switch.
@@ -992,33 +1099,40 @@ export default function HomePage() {
               exit={{ opacity: 0, y: -14 }}
               transition={{ duration: 0.25, ease: 'easeInOut' }}
             >
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
+              <div className="grid md:grid-cols-2 gap-5 mb-6">
                 {/* Before */}
-                <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-8">
-                  <div className="flex items-center gap-2.5 mb-5">
-                    <div className="w-7 h-7 bg-red-500/15 rounded-lg flex items-center justify-center">
-                      <X className="w-3.5 h-3.5 text-red-400" />
+                <div className="relative bg-white/[0.03] border border-white/8 rounded-3xl p-8 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-8 h-8 bg-white/10 border border-white/15 rounded-xl flex items-center justify-center">
+                        <X className="w-4 h-4 text-white/70" />
+                      </div>
+                      <span className="text-xs font-bold text-white/50 uppercase tracking-[0.15em]">Before</span>
                     </div>
-                    <span className="text-xs font-bold text-red-400 uppercase tracking-widest">Before</span>
+                    <p className="text-slate-300 text-[15px] leading-relaxed">{WINS[activeWin].before}</p>
                   </div>
-                  <p className="text-slate-300 text-base leading-relaxed">{WINS[activeWin].before}</p>
                 </div>
 
                 {/* After */}
-                <div className="bg-blue-600 rounded-3xl p-8">
-                  <div className="flex items-center gap-2.5 mb-5">
-                    <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
-                      <CheckCircle className="w-3.5 h-3.5 text-white" />
+                <div className="relative bg-blue-600 rounded-3xl p-8 overflow-hidden shadow-2xl shadow-blue-900/50">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/40 to-blue-700/60 pointer-events-none" />
+                  <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-8 h-8 bg-white/20 border border-white/30 rounded-xl flex items-center justify-center">
+                        <CheckCircle className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-xs font-bold text-blue-100/80 uppercase tracking-[0.15em]">With Tera SM</span>
                     </div>
-                    <span className="text-xs font-bold text-blue-100 uppercase tracking-widest">With Tera SM</span>
+                    <p className="text-white text-[15px] leading-relaxed">{WINS[activeWin].after}</p>
                   </div>
-                  <p className="text-white text-base leading-relaxed">{WINS[activeWin].after}</p>
                 </div>
               </div>
 
               {/* Metric callout */}
               <div className="flex justify-center">
-                <div className="inline-flex items-center gap-3 bg-blue-950/70 border border-blue-500/25 rounded-2xl px-8 py-4">
+                <div className="inline-flex items-center gap-3 bg-white/[0.06] border border-white/10 backdrop-blur-sm rounded-2xl px-8 py-4">
                   <TrendingUp className="w-5 h-5 text-blue-400 flex-shrink-0" />
                   <span className="text-xl font-bold text-white">{WINS[activeWin].metric}</span>
                 </div>
@@ -1438,6 +1552,36 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Student count calculator */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 max-w-lg mx-auto mb-10">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                How many students?
+              </label>
+              <span className="text-lg font-bold text-blue-600">{studentCount.toLocaleString()}</span>
+            </div>
+            <input
+              type="range"
+              min={50} max={10000} step={50}
+              value={studentCount}
+              onChange={e => setStudentCount(Number(e.target.value))}
+              className="w-full accent-blue-600 mb-5"
+            />
+            <div className="grid grid-cols-3 gap-2">
+              {pricingPlans.map(tier => {
+                const rate = annual ? tier.monthly * 0.8 : tier.monthly
+                const total = Math.round(rate * studentCount)
+                return (
+                  <div key={tier.name} className="bg-gray-50 dark:bg-gray-700 rounded-xl p-3 text-center">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{tier.name}</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">${total.toLocaleString()}</p>
+                    <p className="text-[10px] text-gray-400">/month</p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
           <div className="grid md:grid-cols-3 gap-6 items-start mb-8">
             {pricingPlans.map((tier) => {
               const price = annual ? (tier.monthly * 0.8).toFixed(2) : tier.monthly.toFixed(2)
@@ -1717,6 +1861,83 @@ export default function HomePage() {
           <p className="text-blue-200 text-sm mt-6">14-day free trial · No credit card · Cancel anytime</p>
         </div>
       </section>
+
+      {/* ── Video demo modal ── */}
+      <AnimatePresence>
+        {showDemo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowDemo(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="relative w-full max-w-3xl bg-gray-950 rounded-2xl overflow-hidden shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
+                  </div>
+                  <span className="text-sm font-semibold text-white">Tera SM — 2-minute product tour</span>
+                </div>
+                <button onClick={() => setShowDemo(false)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
+              </div>
+              {/* Placeholder video area */}
+              <div className="aspect-video bg-gradient-to-br from-gray-900 to-blue-950 flex flex-col items-center justify-center gap-4">
+                <div className="w-16 h-16 bg-blue-600/80 rounded-full flex items-center justify-center shadow-2xl shadow-blue-900/60 border border-white/20">
+                  <Play className="w-7 h-7 text-white fill-white ml-1" />
+                </div>
+                <p className="text-gray-400 text-sm">Demo video — coming soon</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Sticky bottom CTA ── */}
+      <AnimatePresence>
+        {scrollY > 400 && !ctaDismissed && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed bottom-4 left-4 right-4 z-40 max-w-3xl mx-auto"
+          >
+            <div className="bg-white/20 dark:bg-gray-950/20 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/20 px-4 py-3 flex items-center gap-3">
+              <div className="hidden sm:block flex-1">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Ready to transform your institution?</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">14-day free trial · No credit card required</p>
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <a href="/contact" className="px-4 py-2 border border-gray-200/60 dark:border-white/15 text-gray-700 dark:text-gray-200 font-semibold rounded-xl text-sm hover:bg-white/30 dark:hover:bg-white/10 transition-colors hidden sm:block backdrop-blur-sm">
+                  Book a demo
+                </a>
+                <Link href="/register" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-colors shadow-lg shadow-blue-500/30">
+                  Start free trial
+                </Link>
+              </div>
+              <button
+                onClick={() => setCtaDismissed(true)}
+                className="p-1.5 hover:bg-white/20 dark:hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                aria-label="Dismiss"
+              >
+                <X className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

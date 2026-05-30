@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Settings2, Loader2, Save, CheckCircle2, AlertCircle, ChevronDown, ChevronRight, Send, XCircle, Users } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
 
 interface GradeBoundary { letter: string; min: number }
 interface AcademicYear {
@@ -301,9 +302,7 @@ export default function GradingPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading…
-        </div>
+        <SkeletonTable rows={5} />
       ) : years.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
           <Settings2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />

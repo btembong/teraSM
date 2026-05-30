@@ -6,6 +6,7 @@ import {
   Building2, ChevronRight, Search, Users, BookOpen, Clock,
   CheckCircle2, XCircle, Loader2, AlertCircle, UserCheck,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
 import { NoActiveSemester } from '@/components/ui/no-active-semester'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -78,11 +79,7 @@ export default function EnrollmentsPage() {
     }
   }
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[300px] gap-2 text-gray-400">
-      <Loader2 className="w-5 h-5 animate-spin" /> Loading…
-    </div>
-  )
+  if (loading) return <SkeletonTable rows={8} />
 
   if (!roster?.semester) return <NoActiveSemester feature="Enrollment roster" />
 
@@ -205,7 +202,7 @@ export default function EnrollmentsPage() {
       </div>
 
       <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-hover">
           <thead>
             <tr className="border-b border-gray-100 bg-slate-50/60">
               <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide border-r border-gray-100">Course</th>

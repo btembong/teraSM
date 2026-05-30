@@ -5,6 +5,8 @@ import {
   BookOpen, Plus, Building2, AlertCircle, X, Pencil,
   Save, Loader2, ChevronDown, CheckCircle2,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 
 type Offering = {
   id: string
@@ -203,11 +205,6 @@ export default function CourseOfferingsPage() {
   const scheduledCourseIds = new Set(data?.offerings.map(o => o.courseId) ?? [])
   const availableCourses   = courses.filter(c => !scheduledCourseIds.has(c.id))
 
-  // Find the selected semester label for the header
-  const activeSemLabel = semesterId
-    ? semesters.find(s => s.id === semesterId)
-    : null
-
   return (
     <div className="space-y-5">
       {/* Edit modal */}
@@ -324,17 +321,16 @@ export default function CourseOfferingsPage() {
 
       {/* Offerings table */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading…
-        </div>
+        <SkeletonTable rows={5} />
       ) : data?.semester && data.offerings.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
-          <BookOpen className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-gray-500 text-sm">No courses scheduled yet. Click "Schedule Course" to add one.</p>
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title="No courses scheduled yet"
+          description='Click "Schedule Course" to assign a course to this semester.'
+        />
       ) : data?.semester && (
         <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-hover">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Course</th>

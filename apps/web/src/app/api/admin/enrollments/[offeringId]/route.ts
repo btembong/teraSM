@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { generateSemesterInvoice } from '@/lib/generate-invoice'
 import { getActiveSemester } from '@/lib/active-semester'
+import { ensureCourseGroupChat } from '@/lib/ensure-course-chat'
 
 const ADMIN_ROLES = ['TENANT_ADMIN', 'REGISTRAR']
 
@@ -92,7 +93,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ of
     data: { status, ...(status === 'DROPPED' ? { droppedAt: new Date() } : {}) },
   })
 
-  // When approving a pending enrollment, generate invoice
+  // When approving a pending enrollment
   if (status === 'ENROLLED' && enrollment.status === 'PENDING') {
     const semester = await getActiveSemester(tenantId)
     if (semester) {
@@ -102,6 +103,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ of
         semesterId: semester.id,
       }).catch(() => {})
     }
+    // Auto-create or join the course group chat (fire-and-forget)
+    ensureCourseGroupChat(tenantId, offeringId, enrollment.studentId).catch(() => {})
   }
 
   return NextResponse.json({ success: true })

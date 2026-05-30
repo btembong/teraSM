@@ -43,7 +43,7 @@ export async function GET(req: Request) {
       await notifyUser({
         tenantId: enr.tenantId,
         userId: enr.studentId,
-        type: 'GENERAL',
+        type: 'MISSED_CLASS',
         title: 'Missed Class',
         body: `You missed the live class "${lc.title}" for ${lc.courseOffering.course.code}. Check for a recording.`,
         link: `/student/live-classes/${lc.id}`,

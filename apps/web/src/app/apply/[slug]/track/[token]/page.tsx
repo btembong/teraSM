@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import {
   Loader2, CheckCircle2, Clock, XCircle, AlertCircle,
-  FileText, Users, Star, Download,
+  FileText, Users, Star, Download, ThumbsUp, ThumbsDown,
 } from 'lucide-react'
 
 type AppData = {
@@ -47,10 +47,12 @@ function timelineIndex(status: string) {
 }
 
 export default function TrackPage({ params }: { params: Promise<{ slug: string; token: string }> }) {
-  const [slug, setSlug]   = useState('')
-  const [token, setToken] = useState('')
-  const [data, setData]   = useState<AppData | null>(null)
-  const [notFound, setNotFound] = useState(false)
+  const [slug, setSlug]     = useState('')
+  const [token, setToken]   = useState('')
+  const [data, setData]     = useState<AppData | null>(null)
+  const [notFound, setNotFound]   = useState(false)
+  const [responding, setResponding] = useState(false)
+  const [respondError, setRespondError] = useState('')
 
   useEffect(() => {
     params.then(p => {
@@ -62,6 +64,27 @@ export default function TrackPage({ params }: { params: Promise<{ slug: string; 
         .catch(() => setNotFound(true))
     })
   }, [params])
+
+  const [conditionsAgreed, setConditionsAgreed] = useState(false)
+
+  const respond = async (action: 'ACCEPT' | 'DECLINE') => {
+    setResponding(true)
+    setRespondError('')
+    try {
+      const res  = await fetch(`/api/apply/${slug}/track/${token}/respond`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ action }),
+      })
+      const json = await res.json()
+      if (!res.ok) { setRespondError(json.error ?? 'Failed. Please try again.'); return }
+      setData(d => d ? { ...d, status: json.status, enrolledAt: json.enrolledAt } : d)
+    } catch {
+      setRespondError('Network error. Please try again.')
+    } finally {
+      setResponding(false)
+    }
+  }
 
   if (notFound) {
     return (
@@ -158,22 +181,69 @@ export default function TrackPage({ params }: { params: Promise<{ slug: string; 
                   Offer expires: <strong>{new Date(data.offerExpiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
                 </p>
               )}
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap mb-3">
                 {data.offerLetterUrl && (
                   <a
                     href={data.offerLetterUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-xl transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-xl transition-colors"
                   >
                     <Download className="w-3.5 h-3.5" />
                     Download Offer Letter
                   </a>
                 )}
-                <p className="text-xs text-green-700 flex items-center">
-                  Contact admissions to accept or decline your offer.
-                </p>
               </div>
+              {/* Conditions acknowledgment */}
+              <div className="bg-white border border-green-200 rounded-xl p-3 mb-3">
+                <p className="text-xs font-semibold text-gray-700 mb-2">By accepting this offer, you confirm that:</p>
+                <ul className="text-xs text-gray-600 space-y-1 mb-3 list-none">
+                  {[
+                    'All information provided in your application is accurate and truthful.',
+                    'You understand that your enrolment is subject to fee payment as invoiced.',
+                    'You agree to abide by the institution\'s rules, regulations and code of conduct.',
+                    'You understand that providing false information may result in withdrawal of this offer.',
+                  ].map(c => (
+                    <li key={c} className="flex items-start gap-1.5">
+                      <span className="text-green-500 mt-0.5 flex-shrink-0">•</span> {c}
+                    </li>
+                  ))}
+                </ul>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={conditionsAgreed}
+                    onChange={e => setConditionsAgreed(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  />
+                  <span className="text-xs font-medium text-gray-700">I have read and agree to the above conditions</span>
+                </label>
+              </div>
+
+              <p className="text-xs text-green-700 mb-2 font-medium">Respond to your offer:</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => respond('ACCEPT')}
+                  disabled={responding || !conditionsAgreed}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-colors"
+                >
+                  {responding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ThumbsUp className="w-3.5 h-3.5" />}
+                  Accept Offer
+                </button>
+                <button
+                  onClick={() => respond('DECLINE')}
+                  disabled={responding}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-red-50 disabled:opacity-50 text-red-600 border border-red-200 text-xs font-semibold rounded-xl transition-colors"
+                >
+                  {responding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ThumbsDown className="w-3.5 h-3.5" />}
+                  Decline
+                </button>
+              </div>
+              {respondError && (
+                <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" /> {respondError}
+                </p>
+              )}
             </div>
           )}
 

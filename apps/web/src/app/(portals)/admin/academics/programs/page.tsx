@@ -5,6 +5,7 @@ import {
   GraduationCap, Plus, Pencil, Trash2, X, Save, Loader2,
   AlertCircle, CheckCircle2, ChevronDown, ChevronRight, ScrollText,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
 
 interface Faculty    { id: string; name: string; code: string }
 interface Department { id: string; name: string; code: string; facultyId?: string }
@@ -356,9 +357,7 @@ export default function ProgramsPage() {
 
       {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 gap-2 text-slate-400">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading…
-        </div>
+        <SkeletonTable rows={5} />
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
           <GraduationCap className="w-8 h-8 text-gray-300 mx-auto mb-2" />

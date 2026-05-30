@@ -21,10 +21,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Maximum 500 rows per import' }, { status: 400 })
   }
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: session.user.tenantId },
-    select: { name: true },
-  })
+  const [tenant, tenantSettings] = await Promise.all([
+    prisma.tenant.findUnique({ where: { id: session.user.tenantId }, select: { name: true, logoUrl: true } }),
+    prisma.tenantSettings.findUnique({ where: { tenantId: session.user.tenantId }, select: { primaryColor: true } }),
+  ])
   const schoolName = tenant?.name ?? 'Your School'
 
   // Pre-load all programmes for this tenant so we can resolve programCode → programId
@@ -90,6 +90,8 @@ export async function POST(req: NextRequest) {
         passwordHash,
         role: role as any,
         status: 'ACTIVE',
+        // Admin-imported accounts are vouched for by the institution — treat as verified
+        emailVerified: new Date(),
         onboardingComplete: true,
       },
       select: { id: true },
@@ -120,6 +122,8 @@ export async function POST(req: NextRequest) {
       firstName,
       schoolName,
       temporaryPassword: password,
+      logoUrl:    tenant?.logoUrl,
+      brandColor: tenantSettings?.primaryColor,
     }).catch(err => console.error('[import welcome email]', err))
 
     results.push({ row: rowNum, email, status: 'created' })

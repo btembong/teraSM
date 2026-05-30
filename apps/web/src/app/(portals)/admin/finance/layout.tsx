@@ -8,17 +8,24 @@ export default async function FinanceLayout({ children }: { children: React.Reac
   const session = await auth()
   const tenantId = (session?.user as any)?.tenantId as string | undefined
 
-  const [unpaidCount, feeCount, scholarshipCount] = await Promise.all([
+  const [unpaidCount, feeCount, scholarshipCount, planCount, pendingPaymentsCount] = await Promise.all([
     tenantId ? prisma.invoice.count({ where: { tenantId, status: { in: ['SENT', 'PARTIALLY_PAID', 'OVERDUE'] } } }) : 0,
-    tenantId ? prisma.feeStructure.count({ where: { tenantId } }) : 0,
+    tenantId ? prisma.feeStructure.count({ where: { tenantId, isActive: true } }) : 0,
     tenantId ? prisma.scholarship.count({ where: { tenantId } }) : 0,
+    tenantId && (prisma as any).installmentPlanTemplate
+      ? (prisma as any).installmentPlanTemplate.count({ where: { tenantId } }).catch(() => 0)
+      : Promise.resolve(0),
+    tenantId ? prisma.manualPayment.count({ where: { tenantId, status: 'PENDING' } }).catch(() => 0) : 0,
   ])
 
   const tabs = [
-    { label: 'Overview',       href: '/admin/finance',              icon: 'LayoutDashboard', group: 'overview' },
-    { label: 'Fee Structures', href: '/admin/finance/fees',         icon: 'CreditCard',      badge: feeCount,         group: 'billing' },
-    { label: 'Invoices',       href: '/admin/finance/invoices',     icon: 'FileText',        badge: unpaidCount,      group: 'billing' },
-    { label: 'Scholarships',   href: '/admin/finance/scholarships', icon: 'Award',           badge: scholarshipCount, group: 'aid' },
+    { label: 'Overview',           href: '/admin/finance',                    icon: 'LayoutDashboard', group: 'overview' },
+    { label: 'Fee Structures',     href: '/admin/finance/fees',               icon: 'CreditCard',      badge: feeCount,         group: 'billing' },
+    { label: 'Plan Templates',     href: '/admin/finance/installment-plans',  icon: 'Layers',          badge: planCount,        group: 'billing' },
+    { label: 'Payment Schedules',  href: '/admin/finance/payment-schedules',  icon: 'CalendarDays',    group: 'billing' },
+    { label: 'Invoices',           href: '/admin/finance/invoices',           icon: 'FileText',        badge: unpaidCount,      group: 'billing' },
+    { label: 'Scholarships',       href: '/admin/finance/scholarships',       icon: 'Award',           badge: scholarshipCount,    group: 'aid' },
+    { label: 'Manual Payments',    href: '/admin/finance/manual-payments',    icon: 'Banknote',        badge: pendingPaymentsCount, group: 'billing' },
   ]
 
   return (

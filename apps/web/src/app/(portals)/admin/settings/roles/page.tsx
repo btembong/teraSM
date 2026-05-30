@@ -5,6 +5,7 @@ import {
   Shield, Users, Search, Loader2, RefreshCw, Info,
   ChevronDown, ChevronRight, RotateCcw, CheckCircle2,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
 import {
   PERMISSION_MODULES, MANAGED_ROLES, ROLE_LABELS,
   ALL_PERM_KEYS, type PermKey, type AdminRole,
@@ -238,9 +239,7 @@ export default function RolesPage() {
       {/* ── ROLE PERMISSIONS TAB ── */}
       {tab === 'roles' && (
         matrixLoading ? (
-          <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-            <Loader2 className="w-5 h-5 animate-spin" /> Loading permissions...
-          </div>
+          <SkeletonTable rows={4} />
         ) : matrix ? (
           <div className="flex gap-6">
             {/* Left: role selector */}
@@ -424,9 +423,7 @@ export default function RolesPage() {
           {/* Right: user permission detail */}
           <div className="flex-1">
             {userLoading ? (
-              <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-                <Loader2 className="w-5 h-5 animate-spin" /> Loading permissions...
-              </div>
+              <SkeletonTable rows={4} />
             ) : selectedUser ? (
               <div className="space-y-4">
                 {/* User header */}

@@ -43,7 +43,7 @@ export async function GET(req: Request) {
       await notifyUser({
         tenantId: inv.tenantId,
         userId: inv.studentId,
-        type: 'GENERAL',
+        type: 'FEE_DUE',
         title: `Fee Payment Due ${days === 1 ? 'Tomorrow' : `in ${days} Days`}`,
         body: `$${balance.toFixed(2)} is due ${label} (Invoice ${inv.invoiceNo}). Pay now to avoid late fees.`,
         link: '/student/fees',

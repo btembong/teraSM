@@ -39,6 +39,7 @@ enum UserRole {
   STUDENT
   PARENT
   STAFF
+  ALUMNI
 }
 
 enum UserStatus {
@@ -111,21 +112,25 @@ model User {
   phone              String?
   avatarUrl          String?
   dateOfBirth        DateTime?
-  pinHash            String?
-  twoFactorEnabled   Boolean    @default(false)
-  twoFactorSecret    String?
-  otpCode            String?    // hashed OTP for email-based 2FA
-  otpExpiry          DateTime?  // when the OTP expires
-  onboardingComplete Boolean          @default(false)
-  academicStanding   AcademicStanding  @default(GOOD_STANDING)
-  standingNote       String?           @db.Text
-  lastLoginAt        DateTime?
-  fcmToken           String?    // Firebase Cloud Messaging token for push notifications
-  emailNotifications Boolean    @default(true)
-  smsNotifications   Boolean    @default(false)
-  pushNotifications  Boolean    @default(true)
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  twoFactorEnabled     Boolean    @default(false)
+  twoFactorSecret      String?
+  otpCode              String?   // hashed OTP for email-based 2FA
+  otpExpiry            DateTime? // when the OTP expires
+  pinHash              String?                // bcrypt hash of user's 4–6 digit PIN
+  sessionVersion       Int       @default(0)  // bump to invalidate all existing JWTs instantly
+  failedLoginAttempts  Int       @default(0)  // consecutive failed password attempts
+  lockedUntil          DateTime?              // account locked until (brute-force protection)
+  onboardingComplete   Boolean          @default(false)
+  mustChangePassword   Boolean          @default(false)
+  academicStanding     AcademicStanding  @default(GOOD_STANDING)
+  standingNote         String?           @db.Text
+  lastLoginAt          DateTime?
+  fcmToken             String?   // Firebase Cloud Messaging token for push notifications
+  emailNotifications   Boolean    @default(true)
+  smsNotifications     Boolean    @default(false)
+  pushNotifications    Boolean    @default(true)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
 
   // Relations
   tenant             Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -142,6 +147,14 @@ model User {
   bookBorrows             BookBorrow[]            @relation("BookBorrower")
   courseOfferings         CourseOffering[]        @relation("TeacherOfferings")
   permissionOverrides     UserPermissionOverride[]
+  // Thesis
+  theses              Thesis[]          @relation("StudentThesis")
+  supervisedTheses    Thesis[]          @relation("SupervisorTheses")
+  thesisFeedbacks     ThesisFeedback[]  @relation("ThesisFeedbackAuthor")
+  // Alumni mentorship
+  alumniMentorships       AlumniMentorship[]       @relation("AlumniMentor")
+  menteeRequests          AlumniMentorship[]       @relation("MentorshipStudent")
+  notificationPreferences NotificationPreference[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -349,9 +362,10 @@ model Semester {
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
-  academicYear   AcademicYear    @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  courses        CourseOffering[]
-  holidays       Holiday[]
+  academicYear      AcademicYear             @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  courses           CourseOffering[]
+  holidays          Holiday[]
+  paymentSchedules  SemesterPaymentSchedule[]
 
   @@unique([tenantId, academicYearId, name])
   @@index([tenantId])
@@ -576,6 +590,9 @@ model StudentProfile {
   cgpa            Float     @default(0)
   totalCredits    Int       @default(0)
   graduatedAt     DateTime? // set when officially marked as graduated
+  emergencyName     String?
+  emergencyPhone    String?
+  emergencyRelation String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -650,27 +667,68 @@ enum ScholarshipStatus {
   EXPIRED
 }
 
+enum BillingPeriod {
+  SEMESTER
+  ANNUAL
+  ONE_TIME
+}
+
 // Fee Structure (what fees exist and their amounts)
 model FeeStructure {
-  id               String    @id @default(cuid())
+  id               String        @id @default(cuid())
   tenantId         String
   name             String
   description      String?
   amount           Float
-  semesterId       String?   // null = all semesters
-  level            Int?      // null = all levels
-  programId        String?   // Department id, null = all programs
-  isRecurring      Boolean   @default(true)
+  billingPeriod    BillingPeriod @default(SEMESTER)
+  semesterId       String?       // null = all semesters
+  level            Int?          // null = all levels
+  programId        String?       // Program id, null = all programs
+  isRecurring      Boolean       @default(true)
   dueDate          DateTime?
-  lateFee          Float?
-  lateFeeGraceDays Int       @default(0)
-  isActive         Boolean   @default(true)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  lateFee          Float?        // fixed late fee amount
+  lateFeeGraceDays Int           @default(0)
+  lateFeePercent   Float?        // % of outstanding charged as late fee
+  surchargePercent Float?        // additional % surcharge on top of base
+  isActive         Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   invoiceItems     InvoiceItem[]
 
   @@index([tenantId])
+  @@index([tenantId, programId])
+  @@index([tenantId, level])
+}
+
+// Reusable installment plan templates (e.g. "3-payment plan: 50/30/20")
+model InstallmentPlanTemplate {
+  id              String   @id @default(cuid())
+  tenantId        String
+  name            String
+  description     String?
+  numInstallments Int
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items             InstallmentTemplateItem[]
+  semesterSchedules SemesterPaymentSchedule[]
+
+  @@index([tenantId])
+}
+
+// Individual installment within a template
+model InstallmentTemplateItem {
+  id         String  @id @default(cuid())
+  templateId String
+  label      String  // "First Payment", "Second Payment" etc.
+  percentage Float   // % of total invoice amount (all items must sum to 100)
+  daysOffset Int     @default(0) // days from invoice issue date when this installment is due
+
+  template   InstallmentPlanTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
 }
 
 // Invoice per student
@@ -829,6 +887,7 @@ model PaymentPlan {
   tenantId        String
   invoiceId       String            @unique
   studentId       String
+  scheduleId      String?           // which SemesterPaymentSchedule was applied
   totalAmount     Float
   numInstallments Int
   status          PaymentPlanStatus @default(PENDING)
@@ -836,11 +895,47 @@ model PaymentPlan {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  invoice         Invoice           @relation(fields: [invoiceId], references: [id])
+  invoice         Invoice                  @relation(fields: [invoiceId], references: [id])
+  schedule        SemesterPaymentSchedule? @relation(fields: [scheduleId], references: [id])
   installments    PaymentPlanInstallment[]
 
   @@index([tenantId])
   @@index([studentId])
+  @@index([scheduleId])
+}
+
+// Semester-specific payment schedule — template % splits + real calendar dates
+model SemesterPaymentSchedule {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  semesterId  String?  // optional: scoped to a semester
+  templateId  String?  // optional: which template was used as starting point
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  semester     Semester?                    @relation(fields: [semesterId], references: [id])
+  template     InstallmentPlanTemplate?     @relation(fields: [templateId], references: [id])
+  items        SemesterPaymentScheduleItem[]
+  paymentPlans PaymentPlan[]
+
+  @@index([tenantId])
+  @@index([semesterId])
+}
+
+model SemesterPaymentScheduleItem {
+  id         String   @id @default(cuid())
+  scheduleId String
+  label      String
+  percentage Float
+  dueDate    DateTime
+  sortOrder  Int      @default(0)
+
+  schedule   SemesterPaymentSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
 }
 
 model PaymentPlanInstallment {
@@ -1425,6 +1520,23 @@ enum AnnouncementAudience {
   DEPARTMENT
 }
 
+enum AnnouncementType {
+  ANNOUNCEMENT
+  NEWS
+  DEANS_MESSAGE
+}
+
+enum NewsletterStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+}
+
+enum CampaignType {
+  BANNER
+  POPUP
+}
+
 enum NotificationType {
   ANNOUNCEMENT
   MESSAGE
@@ -1433,28 +1545,33 @@ enum NotificationType {
   FEE_DUE
   LEAVE_UPDATE
   LIVE_CLASS_STARTING
+  MISSED_CLASS
   GENERAL
 }
 
 // Conversation (DM, group chat, or announcement channel)
 model Conversation {
-  id          String           @id @default(cuid())
-  tenantId    String
-  type        ConversationType @default(DIRECT)
-  name        String?          // for group chats
-  avatarUrl   String?
-  description String?
-  isArchived  Boolean          @default(false)
-  createdById String           // User id
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  lastMessageAt DateTime?
+  id               String           @id @default(cuid())
+  tenantId         String
+  type             ConversationType @default(DIRECT)
+  name             String?          // for group chats
+  avatarUrl        String?
+  description      String?
+  isArchived       Boolean          @default(false)
+  createdById      String           // User id
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  lastMessageAt    DateTime?
+  courseOfferingId String?          // set for auto-created course group chats
+  departmentId     String?          // set for department announcement channels
 
   participants ConversationParticipant[]
   messages     Message[]
 
   @@index([tenantId])
   @@index([createdById])
+  @@index([courseOfferingId])
+  @@index([departmentId])
 }
 
 // Participant in a conversation
@@ -1517,13 +1634,19 @@ model Announcement {
   id           String               @id @default(cuid())
   tenantId     String
   authorId     String               // User id
+  type         AnnouncementType     @default(ANNOUNCEMENT)
   title        String
   body         String               @db.Text
+  imageUrl     String?              // cover image for NEWS type
+  videoUrl     String?              // embed URL for DEANS_MESSAGE type
   audience     AnnouncementAudience @default(ALL)
   departmentId String?              // if audience = DEPARTMENT
+  yearLevel    Int?                 // target specific year (100, 200, etc.) — null = all
+  programmeId  String?              // target specific programme — null = all
   isPinned     Boolean              @default(false)
   isPublished  Boolean              @default(false)
   publishedAt  DateTime?
+  scheduledAt  DateTime?            // auto-publish at this time if set
   expiresAt    DateTime?
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
@@ -1532,6 +1655,51 @@ model Announcement {
 
   @@index([tenantId])
   @@index([authorId])
+  @@index([tenantId, type])
+}
+
+// Email newsletter (separate from in-portal announcements)
+model Newsletter {
+  id             String           @id @default(cuid())
+  tenantId       String
+  authorId       String           // User id
+  subject        String
+  previewText    String?          // email preview snippet
+  body           String           @db.Text  // HTML body
+  audience       AnnouncementAudience @default(ALL)
+  status         NewsletterStatus @default(DRAFT)
+  scheduledAt    DateTime?        // send at this time
+  sentAt         DateTime?
+  recipientCount Int              @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([tenantId])
+  @@index([authorId])
+}
+
+// Banner or popup campaign shown in the student/staff portal
+model Campaign {
+  id           String       @id @default(cuid())
+  tenantId     String
+  authorId     String
+  type         CampaignType @default(BANNER)
+  title        String
+  body         String?
+  imageUrl     String?
+  ctaText      String?      // call-to-action button label
+  ctaUrl       String?      // call-to-action URL
+  audience     AnnouncementAudience @default(ALL)
+  isActive     Boolean      @default(false)
+  startsAt     DateTime?
+  endsAt       DateTime?
+  viewCount    Int          @default(0)
+  dismissCount Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
 }
 
 // Tracks which announcements a user has read
@@ -1565,6 +1733,22 @@ model Notification {
   @@index([tenantId])
   @@index([userId])
   @@index([isRead])
+}
+
+// Per-user, per-category notification preference overrides
+model NotificationPreference {
+  id       String           @id @default(cuid())
+  userId   String
+  tenantId String
+  category NotificationType
+  email    Boolean          @default(true)
+  sms      Boolean          @default(false)
+  push     Boolean          @default(true)
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@index([tenantId])
 }
 
 // ─────────────────────────────────────────────────
@@ -2598,6 +2782,141 @@ model ActivationCode {
 
   @@index([tenantId])
   @@index([code])
+}
+
+// ─── Thesis & Dissertation Portal ────────────────────────────────────────────
+
+enum ThesisStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  REVISION_REQUESTED
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+model Thesis {
+  id              String        @id @default(cuid())
+  tenantId        String
+  studentId       String        // User.id (student)
+  supervisorId    String?       // User.id (teacher/staff)
+  title           String
+  abstract        String?       @db.Text
+  department      String?
+  program         String?
+  academicYear    String?       // e.g. "2024/2025"
+  status          ThesisStatus  @default(DRAFT)
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  publishedAt     DateTime?
+  tags            String[]      @default([])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  student         User          @relation("StudentThesis",    fields: [studentId],    references: [id])
+  supervisor      User?         @relation("SupervisorTheses", fields: [supervisorId], references: [id])
+  versions        ThesisVersion[]
+  feedbacks       ThesisFeedback[]
+
+  @@index([tenantId])
+  @@index([studentId])
+  @@index([supervisorId])
+  @@index([status])
+}
+
+model ThesisVersion {
+  id          String   @id @default(cuid())
+  thesisId    String
+  version     Int      @default(1)
+  fileUrl     String
+  fileName    String
+  fileSize    Int?     // bytes
+  uploadedAt  DateTime @default(now())
+  note        String?  @db.Text // e.g. "Addressed supervisor comments"
+
+  thesis      Thesis   @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  @@index([thesisId])
+}
+
+model ThesisFeedback {
+  id          String   @id @default(cuid())
+  thesisId    String
+  authorId    String   // User.id (supervisor or admin)
+  content     String   @db.Text
+  isPrivate   Boolean  @default(false) // true = only supervisor/admin see it
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  thesis      Thesis   @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+  author      User     @relation("ThesisFeedbackAuthor", fields: [authorId], references: [id])
+
+  @@index([thesisId])
+  @@index([authorId])
+}
+
+// ─── Alumni Network & Mentorship ──────────────────────────────────────────────
+
+enum MentorshipStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  DECLINED
+}
+
+model AlumniMentorship {
+  id          String            @id @default(cuid())
+  tenantId    String
+  mentorId    String            // AlumniProfile userId
+  studentId   String            // Student userId
+  status      MentorshipStatus  @default(PENDING)
+  message     String?           @db.Text // student's intro message
+  goals       String?           @db.Text
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  mentor      User              @relation("AlumniMentor",    fields: [mentorId],  references: [id])
+  student     User              @relation("MentorshipStudent", fields: [studentId], references: [id])
+
+  @@index([tenantId])
+  @@index([mentorId])
+  @@index([studentId])
+  @@index([status])
+}
+
+// ─── Transcript Requests ─────────────────────────────────────────────────────
+
+enum TranscriptType {
+  OFFICIAL
+  UNOFFICIAL
+}
+
+enum TranscriptStatus {
+  PENDING
+  READY
+  DOWNLOADED
+}
+
+model TranscriptRequest {
+  id               String           @id @default(cuid())
+  tenantId         String
+  studentId        String           // User.id of the student
+  requestedById    String           // User.id who triggered it (student self or admin)
+  type             TranscriptType   @default(OFFICIAL)
+  status           TranscriptStatus @default(PENDING)
+  verificationCode String           @unique  // HMAC token embedded in QR
+  pdfUrl           String?          // R2 URL after generation
+  issuedAt         DateTime         @default(now())
+  generatedAt      DateTime?
+  downloadedAt     DateTime?
+  purpose          String?          // "Job application", "Postgraduate admission", etc.
+
+  @@index([tenantId])
+  @@index([studentId])
+  @@index([verificationCode])
 }
 
 // ─── Student Document Vault ───────────────────────────────────────────────────

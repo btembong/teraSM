@@ -33,9 +33,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // Notify employee (non-blocking)
     if (request.employee?.userId) {
-      const [empUser, tenant] = await Promise.all([
+      const [empUser, tenant, tenantSettings] = await Promise.all([
         prisma.user.findUnique({ where: { id: request.employee.userId }, select: { email: true, firstName: true } }),
-        prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }),
+        prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true, logoUrl: true } }),
+        prisma.tenantSettings.findUnique({ where: { tenantId }, select: { primaryColor: true } }),
       ])
       if (empUser) {
         sendLeaveDecisionEmail({
@@ -47,6 +48,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           endDate: request.endDate,
           days: request.days,
           status: 'APPROVED',
+          logoUrl:    tenant?.logoUrl,
+          brandColor: tenantSettings?.primaryColor,
         }).catch(err => console.error('[leave approve email]', err))
       }
     }
@@ -71,9 +74,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // Notify employee (non-blocking)
     if (request.employee?.userId) {
-      const [empUser, tenant] = await Promise.all([
+      const [empUser, tenant, tenantSettings] = await Promise.all([
         prisma.user.findUnique({ where: { id: request.employee.userId }, select: { email: true, firstName: true } }),
-        prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }),
+        prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true, logoUrl: true } }),
+        prisma.tenantSettings.findUnique({ where: { tenantId }, select: { primaryColor: true } }),
       ])
       if (empUser) {
         sendLeaveDecisionEmail({
@@ -86,6 +90,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           days: request.days,
           status: 'REJECTED',
           note: body.note,
+          logoUrl:    tenant?.logoUrl,
+          brandColor: tenantSettings?.primaryColor,
         }).catch(err => console.error('[leave reject email]', err))
       }
     }

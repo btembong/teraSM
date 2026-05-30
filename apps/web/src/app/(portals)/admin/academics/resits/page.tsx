@@ -5,6 +5,7 @@ import {
   RotateCcw, Loader2, CheckCircle2, AlertCircle, ChevronDown,
   ChevronRight, Users, Info, Send, XCircle,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
 
 interface FailedGrade {
   gradeId:          string
@@ -223,9 +224,7 @@ export default function ResitsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading…
-        </div>
+        <SkeletonTable rows={5} />
       ) : (
         <div className="space-y-4">
 

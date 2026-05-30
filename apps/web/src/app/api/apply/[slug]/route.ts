@@ -13,12 +13,19 @@ export async function GET(_req: NextRequest, { params }: Params) {
   if (!tenant || tenant.status === 'SUSPENDED' || tenant.status === 'CANCELLED') {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
-  return NextResponse.json({ name: tenant.name, logoUrl: tenant.logoUrl })
+
+  const programs = await prisma.program.findMany({
+    where: { tenantId: tenant.id, isActive: true },
+    select: { name: true, code: true, level: true },
+    orderBy: { name: 'asc' },
+  })
+
+  return NextResponse.json({ name: tenant.name, logoUrl: tenant.logoUrl, programs })
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
   const { slug } = await params
-  const tenant = await prisma.tenant.findUnique({ where: { slug }, select: { id: true, name: true, status: true } })
+  const tenant = await prisma.tenant.findUnique({ where: { slug }, select: { id: true, name: true, logoUrl: true, status: true } })
   if (!tenant || tenant.status === 'SUSPENDED' || tenant.status === 'CANCELLED') {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
@@ -81,15 +88,37 @@ export async function POST(req: NextRequest, { params }: Params) {
     },
   })
 
+  // Notify all admins + registrars of this tenant (fire-and-forget)
+  prisma.user.findMany({
+    where: { tenantId: tenant.id, role: { in: ['TENANT_ADMIN', 'REGISTRAR'] }, status: 'ACTIVE' },
+    select: { id: true },
+  }).then(admins => {
+    if (!admins.length) return
+    return prisma.notification.createMany({
+      data: admins.map(a => ({
+        tenantId: tenant.id,
+        userId:   a.id,
+        title:    'New Admission Application',
+        body:     `${application.firstName} ${application.lastName} applied for ${application.programOfInterest ?? 'a programme'}.`,
+        link:     '/admin/admissions',
+        type:     'GENERAL',
+      })),
+    })
+  }).catch(err => console.error('[notify] admission received:', err))
+
   // Fire-and-forget email (don't block the response)
   const trackingUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/apply/${slug}/track/${application.trackingToken}`
-  sendAdmissionReceivedEmail({
-    to:              application.email,
-    firstName:       application.firstName,
-    schoolName:      tenant.name ?? 'the school',
-    referenceNumber: application.referenceNumber,
-    trackingUrl,
-  }).catch(err => console.error('[email] admission received:', err))
+  prisma.tenantSettings.findUnique({ where: { tenantId: tenant.id }, select: { primaryColor: true } })
+    .then(settings => sendAdmissionReceivedEmail({
+      to:              application.email,
+      firstName:       application.firstName,
+      schoolName:      tenant.name ?? 'the school',
+      referenceNumber: application.referenceNumber,
+      trackingUrl,
+      logoUrl:     tenant.logoUrl,
+      brandColor:  settings?.primaryColor,
+    }))
+    .catch(err => console.error('[email] admission received:', err))
 
   return NextResponse.json({
     id:              application.id,

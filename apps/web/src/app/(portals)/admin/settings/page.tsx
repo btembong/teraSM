@@ -206,6 +206,8 @@ export default function AdminSettingsPage() {
     })
     setSaving(false)
     showSaved()
+    // Re-run server components so the sidebar picks up the new logo/name from DB
+    router.refresh()
   }
 
   const saveSecurity = async () => {
@@ -1214,7 +1216,7 @@ export default function AdminSettingsPage() {
                 Add the following CNAME record in your DNS provider (e.g. Cloudflare, GoDaddy, Namecheap) to point your domain to Tera SM.
               </p>
               <div className="overflow-x-auto rounded-xl border border-gray-200">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm table-hover">
                   <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
                       {['Type', 'Host / Name', 'Value / Target', 'TTL'].map(h => (

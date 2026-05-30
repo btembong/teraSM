@@ -1,5 +1,6 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyUser } from '@/lib/send-notification'
 import { NextResponse, NextRequest } from 'next/server'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -36,10 +37,44 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const body = await req.json()
 
   const message = await prisma.message.create({
-    data: { tenantId, conversationId: id, senderId, content: body.content, fileUrl: body.fileUrl, fileName: body.fileName, fileType: body.fileType },
+    data: {
+      tenantId,
+      conversationId: id,
+      senderId,
+      content: body.content,
+      fileUrl: body.fileUrl,
+      fileName: body.fileName,
+      fileType: body.fileType,
+    },
   })
   await prisma.conversation.update({ where: { id }, data: { lastMessageAt: new Date() } })
 
-  const sender = await prisma.user.findUnique({ where: { id: senderId }, select: { id: true, firstName: true, lastName: true, avatarUrl: true } })
+  const [sender, participants] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: senderId },
+      select: { id: true, firstName: true, lastName: true, avatarUrl: true },
+    }),
+    prisma.conversationParticipant.findMany({
+      where: { conversationId: id, userId: { not: senderId } },
+      select: { userId: true, tenantId: true },
+    }),
+  ])
+
+  // Notify all other participants (fire-and-forget)
+  const senderName = sender ? `${sender.firstName} ${sender.lastName}` : 'Someone'
+  const preview    = body.fileName ? `📎 ${body.fileName}` : (body.content?.slice(0, 80) ?? '')
+  Promise.all(
+    participants.map(p =>
+      notifyUser({
+        tenantId: p.tenantId,
+        userId:   p.userId,
+        type:     'MESSAGE',
+        title:    `New message from ${senderName}`,
+        body:     preview,
+        link:     `/student/messages/${id}`,
+      }).catch(() => {})
+    )
+  ).catch(() => {})
+
   return NextResponse.json({ ...message, sender }, { status: 201 })
 }

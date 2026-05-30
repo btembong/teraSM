@@ -25,7 +25,9 @@ export const OTP_TTL_MS      = 10 * 60 * 1000  // 10 min
 export const OTP_MAX_RESENDS = 5
 
 export function generateOtp(): string {
-  return String(Math.floor(100000 + Math.random() * 900000))
+  // Use CSPRNG — Math.random() is NOT safe for authentication codes
+  const { randomInt } = require('crypto') as typeof import('crypto')
+  return randomInt(100000, 1000000).toString()
 }
 
 export function isExpired(entry: OtpEntry): boolean {

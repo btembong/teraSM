@@ -63,10 +63,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   // Send email notification when status changes to a notable state
   if (body.status !== undefined && body.status !== existing.status) {
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { name: true, slug: true },
-    })
+    const [tenant, tenantSettings] = await Promise.all([
+      prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { name: true, slug: true, logoUrl: true },
+      }),
+      prisma.tenantSettings.findUnique({ where: { tenantId }, select: { primaryColor: true } }),
+    ])
     const schoolName  = tenant?.name ?? 'the school'
     const trackingUrl = tenant?.slug
       ? `${APP_URL}/apply/${tenant.slug}/track/${existing.trackingToken}`
@@ -78,6 +81,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       schoolName,
       referenceNumber: existing.referenceNumber ?? existing.id,
       trackingUrl,
+      logoUrl:     tenant?.logoUrl,
+      brandColor:  tenantSettings?.primaryColor,
     }
 
     const newStatus = body.status

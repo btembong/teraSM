@@ -162,7 +162,7 @@ export default async function ProgressionPage() {
                   <span className="text-purple-600 font-semibold">{group.students.filter(s => s.canAdvance).length} ready to advance</span>
                 </div>
               </div>
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-hover">
                 <thead>
                   <tr className="border-b border-gray-50">
                     <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide border-r border-gray-100">Student</th>

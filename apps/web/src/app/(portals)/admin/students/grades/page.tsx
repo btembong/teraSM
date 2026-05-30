@@ -58,7 +58,7 @@ export default async function StudentGradesPage() {
           <BarChart2 className="w-4 h-4 text-slate-300" />
           <span className="font-semibold text-slate-900 text-sm">Grading Status by Course</span>
         </div>
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-hover">
           <thead>
             <tr className="border-b border-gray-50 bg-slate-50/50">
               <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide border-r border-gray-100">Course</th>

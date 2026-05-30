@@ -5,6 +5,8 @@ import {
   DoorOpen, Plus, Pencil, Trash2, X, Save, Loader2,
   AlertCircle, CheckCircle2, Monitor, FlaskConical, Users,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 
 interface Room {
   id: string
@@ -228,17 +230,16 @@ export default function RoomsPage() {
 
       {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading…
-        </div>
+        <SkeletonTable rows={5} />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
-          <DoorOpen className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-gray-500 text-sm">{rooms.length === 0 ? 'No rooms yet.' : 'No results match your filters.'}</p>
-        </div>
+        <EmptyState
+          icon={DoorOpen}
+          title={rooms.length === 0 ? 'No rooms yet' : 'No results match your filters'}
+          description={rooms.length === 0 ? 'Add classrooms, labs, and lecture halls for scheduling.' : 'Try adjusting your search or filters.'}
+        />
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-hover">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Room</th>

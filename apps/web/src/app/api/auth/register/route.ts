@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { sendTeraWelcomeEmail, sendTrialStartEmail } from '@/lib/email'
 import { scheduleDripEmails } from '@/lib/drip'
+import { verifyEmailToken } from '@/app/api/auth/verify-otp/route'
+import { rateLimit, rateLimitExceededResponse } from '@/lib/rate-limit'
 
 const Schema = z.object({
   // Admin credentials
@@ -11,7 +13,7 @@ const Schema = z.object({
   lastName:   z.string().min(1),
   email:      z.string().email(),
   password:   z.string().min(8),
-  pin:        z.string().length(4),
+  emailToken: z.string().min(1), // issued by verify-otp after OTP confirmation
 
   // School identity
   schoolName:         z.string().min(2),
@@ -62,6 +64,13 @@ const PLAN_CAPS: Record<string, { studentCap: number; storageCap: number }> = {
 
 export async function POST(req: Request) {
   try {
+    // Rate limit: 5 registration attempts per IP per hour
+    const ip = (req as any).headers?.get?.('x-forwarded-for') ?? 'unknown'
+    const rl = rateLimit(`register:${ip}`, 5, 60 * 60 * 1000)
+    if (!rl.success) {
+      return NextResponse.json(rateLimitExceededResponse(rl.resetAt), { status: 429 })
+    }
+
     const body   = await req.json()
     const parsed = Schema.safeParse(body)
     if (!parsed.success) {
@@ -73,6 +82,15 @@ export async function POST(req: Request) {
 
     const d = parsed.data
 
+    // ── Verify email ownership via token issued by verify-otp ──────────────
+    const verifiedEmail = verifyEmailToken(d.emailToken)
+    if (!verifiedEmail || verifiedEmail.toLowerCase() !== d.email.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Email verification required. Please complete the OTP step.' },
+        { status: 403 },
+      )
+    }
+
     // ── Uniqueness checks ──────────────────────────────────
     const [slugTaken, emailTaken] = await Promise.all([
       prisma.tenant.findFirst({ where: { slug: d.subdomain } }),
@@ -82,10 +100,7 @@ export async function POST(req: Request) {
     if (emailTaken) return NextResponse.json({ error: 'An account with that email already exists.' }, { status: 409 })
 
     // ── Hash credentials ───────────────────────────────────
-    const [passwordHash, pinHash] = await Promise.all([
-      bcrypt.hash(d.password, 12),
-      bcrypt.hash(d.pin, 10),
-    ])
+    const passwordHash = await bcrypt.hash(d.password, 12)
 
     const caps       = PLAN_CAPS[d.plan]
     const trialEndsAt = (d.plan === 'STARTER' || d.plan === 'PRO')
@@ -114,18 +129,17 @@ export async function POST(req: Request) {
 
       await tx.user.create({
         data: {
-          tenantId:      t.id,
-          email:         d.email,
-          emailVerified: new Date(), // OTP was verified before this step
-          firstName:     d.firstName,
-          lastName:      d.lastName,
+          tenantId:           t.id,
+          email:              d.email,
+          emailVerified:      new Date(), // verified by emailToken (issued after OTP)
+          firstName:          d.firstName,
+          lastName:           d.lastName,
           passwordHash,
-          // @ts-ignore — pinHash added via db push; client type may lag
-          pinHash,
-          role:   'TENANT_ADMIN',
-          status: 'ACTIVE',
+          pinHash: null,
+          role:               'TENANT_ADMIN',
+          status:             'ACTIVE',
           onboardingComplete: false,
-        },
+        } as any,
       })
 
       await tx.tenantSettings.create({

@@ -83,7 +83,7 @@ export default function EnrollmentRosterIndexPage() {
 
       {/* Table */}
       <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-hover">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/70">
               <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Course</th>

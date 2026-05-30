@@ -6,6 +6,7 @@ import {
   ArrowLeft, Upload, FileText, Image, File, Trash2,
   Loader2, Plus, X, ExternalLink, FolderOpen,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
 
 interface Doc {
   id: string; name: string; fileUrl: string; fileType: string
@@ -230,9 +231,7 @@ export default function StudentDocumentsPage({ params }: { params: Promise<{ id:
 
       {/* Document grid */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading…
-        </div>
+        <SkeletonTable rows={5} />
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <FolderOpen className="w-10 h-10 text-gray-200 mx-auto mb-3" />

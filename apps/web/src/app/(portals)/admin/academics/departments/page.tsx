@@ -5,6 +5,8 @@ import {
   Building2, Plus, Pencil, Trash2, X, Save, Loader2,
   BookOpen, GraduationCap, CheckCircle2, AlertCircle,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 
 interface Faculty { id: string; name: string; code: string }
 interface Department {
@@ -134,17 +136,16 @@ export default function DepartmentsPage() {
 
       {/* Table */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading…
-        </div>
+        <SkeletonTable rows={5} />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
-          <Building2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-gray-500 text-sm">{departments.length === 0 ? 'No departments yet.' : 'No results match your filters.'}</p>
-        </div>
+        <EmptyState
+          icon={Building2}
+          title={departments.length === 0 ? 'No departments yet' : 'No results match your filters'}
+          description={departments.length === 0 ? 'Create your first department to get started.' : 'Try adjusting your search or filters.'}
+        />
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-hover">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide border-r border-gray-100">Department</th>

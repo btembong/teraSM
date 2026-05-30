@@ -33,9 +33,10 @@ export async function POST(
 
   // Notify student by email (non-blocking)
   const tenantId = (session.user as any).tenantId
-  const [student, tenant] = await Promise.all([
+  const [student, tenant, tenantSettings] = await Promise.all([
     prisma.user.findUnique({ where: { id: submission.studentId }, select: { email: true, firstName: true } }),
-    prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }),
+    prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true, logoUrl: true } }),
+    prisma.tenantSettings.findUnique({ where: { tenantId }, select: { primaryColor: true } }),
   ])
   if (student) {
     sendGradeNotificationEmail({
@@ -46,6 +47,8 @@ export async function POST(
       score,
       maxScore: submission.assignment.maxScore,
       feedback: feedback || null,
+      logoUrl:    tenant?.logoUrl,
+      brandColor: tenantSettings?.primaryColor,
     }).catch(err => console.error('[grade email]', err))
   }
 

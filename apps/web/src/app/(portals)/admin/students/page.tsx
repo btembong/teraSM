@@ -9,6 +9,7 @@ import {
   CheckCircle2, Clock,
   Pencil, KeyRound, GraduationCap, BookOpen,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Status   = 'ACTIVE' | 'PENDING' | 'INACTIVE'
@@ -741,9 +742,7 @@ export default function AllStudentsPage() {
 
       {/* Table */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading…
-        </div>
+        <SkeletonTable rows={5} />
       ) : students.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
           <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
@@ -756,7 +755,7 @@ export default function AllStudentsPage() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-hover">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide border-r border-gray-100">Student</th>

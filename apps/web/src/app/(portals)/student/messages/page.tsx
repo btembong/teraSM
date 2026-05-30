@@ -3,15 +3,17 @@
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MessageSquare, Users, Search, Plus, X } from 'lucide-react'
+import { MessageSquare, Users, Search, Plus, X, Hash, Lock } from 'lucide-react'
 
 interface Conversation {
   id: string
   type: string
   name: string | null
   lastMessageAt: string | null
-  participants: { userId: string; lastReadAt: string | null }[]
-  messages: { content: string; createdAt: string; senderId: string }[]
+  courseOfferingId: string | null
+  departmentId: string | null
+  participants: { userId: string; lastReadAt: string | null; user?: { firstName: string; lastName: string } }[]
+  messages: { content: string; createdAt: string; senderId: string; fileName?: string | null }[]
 }
 
 interface UserResult {
@@ -19,6 +21,26 @@ interface UserResult {
   firstName: string
   lastName: string
   role: string
+}
+
+function unreadCount(conv: Conversation, myId: string): number {
+  const lastMsg = conv.messages[0]
+  if (!lastMsg || lastMsg.senderId === myId) return 0
+  const myPart = conv.participants.find(p => p.userId === myId)
+  if (!myPart?.lastReadAt) return 1
+  return new Date(lastMsg.createdAt) > new Date(myPart.lastReadAt) ? 1 : 0
+}
+
+function convIcon(conv: Conversation) {
+  if (conv.type === 'ANNOUNCEMENT') return <Hash className="w-5 h-5 text-orange-600" />
+  if (conv.type === 'GROUP')        return <Users className="w-5 h-5 text-indigo-600" />
+  return null
+}
+
+function convBg(conv: Conversation) {
+  if (conv.type === 'ANNOUNCEMENT') return 'bg-orange-100'
+  if (conv.type === 'GROUP')        return 'bg-indigo-100'
+  return 'bg-blue-100'
 }
 
 export default function StudentMessagesPage() {
@@ -32,10 +54,9 @@ export default function StudentMessagesPage() {
   const [dmResults, setDmResults] = useState<UserResult[]>([])
   const [dmLoading, setDmLoading] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [activeTab, setActiveTab] = useState<'all' | 'dms' | 'groups' | 'channels'>('all')
 
-  // Load session + conversations
-  useEffect(() => {
-    fetch('/api/auth/session').then(r => r.json()).then(s => setCurrentUserId(s?.user?.id ?? null))
+  const loadConversations = useCallback(() => {
     fetch('/api/chat/conversations').then(r => r.json()).then(async (convs: Conversation[]) => {
       setConversations(convs)
       const ids = [...new Set(convs.flatMap(c => c.participants.map(p => p.userId)))]
@@ -46,6 +67,14 @@ export default function StudentMessagesPage() {
       if (res.ok) setUserMap(await res.json())
     })
   }, [])
+
+  useEffect(() => {
+    fetch('/api/auth/session').then(r => r.json()).then(s => setCurrentUserId(s?.user?.id ?? null))
+    loadConversations()
+    // Re-poll conversation list every 10s to catch new group chats / update unread
+    const interval = setInterval(loadConversations, 10000)
+    return () => clearInterval(interval)
+  }, [loadConversations])
 
   // Search teachers/staff for new DM
   useEffect(() => {
@@ -72,7 +101,15 @@ export default function StudentMessagesPage() {
     router.push(`/student/messages/${conv.id}`)
   }, [router])
 
+  const tabFilter: Record<string, (c: Conversation) => boolean> = {
+    all:      () => true,
+    dms:      c => c.type === 'DIRECT',
+    groups:   c => c.type === 'GROUP',
+    channels: c => c.type === 'ANNOUNCEMENT',
+  }
+
   const filtered = conversations.filter(conv => {
+    if (!tabFilter[activeTab](conv)) return false
     if (!search.trim()) return true
     const otherIds = conv.participants.filter(p => p.userId !== currentUserId).map(p => p.userId)
     const names = otherIds.map(id => {
@@ -80,17 +117,24 @@ export default function StudentMessagesPage() {
       return u ? `${u.firstName} ${u.lastName}`.toLowerCase() : ''
     })
     const convName = (conv.name ?? '').toLowerCase()
-    const lastMsg = (conv.messages[0]?.content ?? '').toLowerCase()
+    const lastMsg  = (conv.messages[0]?.content ?? '').toLowerCase()
     const q = search.toLowerCase()
     return names.some(n => n.includes(q)) || convName.includes(q) || lastMsg.includes(q)
   })
+
+  const totalUnread = conversations.reduce((sum, c) => sum + (currentUserId ? unreadCount(c, currentUserId) : 0), 0)
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-          <p className="text-gray-500">Your conversations and group chats</p>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            Messages
+            {totalUnread > 0 && (
+              <span className="text-xs font-semibold bg-blue-600 text-white rounded-full px-2 py-0.5">{totalUnread}</span>
+            )}
+          </h1>
+          <p className="text-gray-500">Conversations, group chats, and channels</p>
         </div>
         <button
           onClick={() => setShowNewDM(true)}
@@ -99,6 +143,21 @@ export default function StudentMessagesPage() {
           <Plus className="w-4 h-4" />
           New Message
         </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+        {(['all', 'dms', 'groups', 'channels'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${
+              activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
       {/* Search bar */}
@@ -130,32 +189,51 @@ export default function StudentMessagesPage() {
         ) : (
           <div className="divide-y divide-gray-100">
             {filtered.map((conv) => {
-              const otherParticipants = conv.participants.filter(p => p.userId !== currentUserId)
-              const lastMsg = conv.messages[0]
-              const myParticipant = conv.participants.find(p => p.userId === currentUserId)
-              const hasUnread = lastMsg && myParticipant?.lastReadAt
-                ? new Date(lastMsg.createdAt) > new Date(myParticipant.lastReadAt) && lastMsg.senderId !== currentUserId
-                : !!lastMsg && lastMsg.senderId !== currentUserId
+              const myId = currentUserId ?? ''
+              const otherParticipants = conv.participants.filter(p => p.userId !== myId)
+              const lastMsg  = conv.messages[0]
+              const hasUnread = unreadCount(conv, myId) > 0
+              const isAnnouncement = conv.type === 'ANNOUNCEMENT'
 
               const displayName = conv.type === 'DIRECT'
-                ? (() => { const u = userMap[otherParticipants[0]?.userId]; return u ? `${u.firstName} ${u.lastName}` : 'Unknown' })()
+                ? (() => {
+                    const u = userMap[otherParticipants[0]?.userId]
+                    return u ? `${u.firstName} ${u.lastName}` : 'Unknown'
+                  })()
                 : conv.name ?? 'Group Chat'
 
+              const lastMsgText = lastMsg?.fileName && !lastMsg.content
+                ? `📎 ${lastMsg.fileName}`
+                : lastMsg?.content ?? ''
+
               return (
-                <Link key={conv.id} href={`/student/messages/${conv.id}`} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-100">
-                    {conv.type === 'GROUP'
-                      ? <Users className="w-5 h-5 text-blue-600" />
-                      : <span className="text-sm font-medium text-blue-700">{displayName[0]}</span>}
+                <Link
+                  key={conv.id}
+                  href={`/student/messages/${conv.id}`}
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${convBg(conv)}`}>
+                    {convIcon(conv) ?? (
+                      <span className="text-sm font-medium text-blue-700">{displayName[0]}</span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className={`font-medium text-gray-900 truncate ${hasUnread ? 'font-semibold' : ''}`}>{displayName}</p>
-                      {lastMsg && <p className="text-xs text-gray-400 flex-shrink-0 ml-2">{new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className={`font-medium text-gray-900 truncate ${hasUnread ? 'font-semibold' : ''}`}>
+                          {displayName}
+                        </p>
+                        {isAnnouncement && <Lock className="w-3 h-3 text-gray-400 flex-shrink-0" />}
+                      </div>
+                      {lastMsg && (
+                        <p className="text-xs text-gray-400 flex-shrink-0">
+                          {new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
                     </div>
                     {lastMsg && (
                       <p className={`text-sm truncate mt-0.5 ${hasUnread ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
-                        {lastMsg.senderId === currentUserId ? 'You: ' : ''}{lastMsg.content}
+                        {lastMsg.senderId === myId ? 'You: ' : ''}{lastMsgText}
                       </p>
                     )}
                   </div>
@@ -188,7 +266,6 @@ export default function StudentMessagesPage() {
                   className="w-full pl-9 pr-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               <div className="mt-3 space-y-1 max-h-64 overflow-y-auto">
                 {dmLoading && <p className="text-center text-sm text-gray-400 py-4">Searching…</p>}
                 {!dmLoading && dmSearch && dmResults.length === 0 && (

@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { sendPayslipGeneratedEmail } from '@/lib/email'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -37,8 +38,34 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   if (body.action === 'PAY') {
-    await prisma.payslip.updateMany({ where: { payrollPeriodId: id, tenantId }, data: { status: 'PAID', paidAt: new Date() } })
-    const period = await prisma.payrollPeriod.update({ where: { id }, data: { status: 'PAID', paidAt: new Date() } })
+    const [period] = await Promise.all([
+      prisma.payrollPeriod.update({ where: { id }, data: { status: 'PAID', paidAt: new Date() } }),
+      prisma.payslip.updateMany({ where: { payrollPeriodId: id, tenantId }, data: { status: 'PAID', paidAt: new Date() } }),
+    ])
+
+    // Notify each employee via email (non-blocking)
+    const payslips = await prisma.payslip.findMany({
+      where: { payrollPeriodId: id, tenantId },
+      include: { employee: { include: { user: { select: { firstName: true, email: true } } } } },
+    })
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } })
+    if (tenant) {
+      for (const slip of payslips) {
+        const user = slip.employee.user
+        if (!user?.email) continue
+        sendPayslipGeneratedEmail({
+          to: user.email,
+          firstName: user.firstName,
+          schoolName: tenant.name,
+          periodLabel: period.name,
+          grossPay: slip.grossPay.toFixed(2),
+          netPay: slip.netPay.toFixed(2),
+          currency: 'USD',
+          payslipUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/staff/payslips`,
+        }).catch(err => console.error('[payslip-email]', err))
+      }
+    }
+
     return NextResponse.json(period)
   }
 

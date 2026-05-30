@@ -5,6 +5,7 @@ import {
   ChevronsUp, Loader2, CheckCircle2, AlertCircle, Users,
   GraduationCap, Info, RefreshCw, ChevronDown, ChevronRight,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
 
 interface Student {
   userId:          string
@@ -207,9 +208,7 @@ export default function PromotionPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading student data…
-        </div>
+        <SkeletonTable rows={5} />
       ) : !data || promotableLevels.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
           <GraduationCap className="w-8 h-8 text-gray-300 mx-auto mb-2" />

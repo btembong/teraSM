@@ -5,6 +5,7 @@ import {
   UserPlus, Link2, Mail, Copy, Check, Trash2,
   Clock, Users, RefreshCw, ChevronDown, Send,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
 
 type InviteRole = 'STUDENT' | 'TEACHER' | 'STAFF' | 'PARENT' | 'REGISTRAR' | 'FINANCE_ADMIN' | 'HR_ADMIN' | 'TENANT_ADMIN'
 
@@ -283,7 +284,7 @@ export default function InvitesPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-sm text-gray-400">Loading…</div>
+          <SkeletonTable rows={5} />
         ) : invites.length === 0 ? (
           <div className="text-center py-12 border border-dashed border-gray-200 rounded-2xl">
             <UserPlus className="w-8 h-8 text-gray-300 mx-auto mb-3" />

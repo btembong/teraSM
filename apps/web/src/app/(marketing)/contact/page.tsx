@@ -53,10 +53,19 @@ export default function ContactPage() {
     setSending(true)
     setError('')
     try {
-      await new Promise(r => setTimeout(r, 1400))
+      const data = tab === 'demo' ? demo : tab === 'sales' ? sales : support
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tab, data }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error((j as { error?: string }).error || 'Request failed')
+      }
       setSent(true)
-    } catch {
-      setError('Something went wrong. Please email us directly.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please email us directly.')
     } finally {
       setSending(false)
     }

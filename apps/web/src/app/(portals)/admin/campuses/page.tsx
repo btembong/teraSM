@@ -5,6 +5,7 @@ import {
   Building2, Plus, Pencil, Trash2, Star, Loader2, X, Save,
   MapPin, Phone, Mail, CheckCircle2, AlertCircle,
 } from 'lucide-react'
+import { SkeletonTable } from '@/components/ui/skeleton'
 
 interface Campus {
   id: string
@@ -130,9 +131,7 @@ export default function CampusesPage() {
 
       {/* Campus grid */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading...
-        </div>
+        <SkeletonTable rows={5} />
       ) : campuses.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-gray-300 rounded-2xl">
           <Building2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
